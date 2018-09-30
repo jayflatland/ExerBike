@@ -1,3 +1,5 @@
+long scheduledNextTick;
+
 int ledPin = 5;
 int speedoPin = 36;
 int resistoPin = 39;
@@ -20,10 +22,11 @@ float pedalRPMs = 0.0;
 int heartIsBeating = 0;
 int ticksSinceLastBeat = 0;
 float heartRateBPM = 0.0;
+float filtHeartRateBPM = 0.0;
 
 int ticksSinceReport = 0;
 
-int loopDtMs = 5;//careful changing this - DSP filters below are tuned to this
+long loopDtMs = 5;//careful changing this - DSP filters below are tuned to this
 
 /*
 
@@ -52,63 +55,64 @@ sampling frequency: 200 Hz
 #define FILTER_TAP_NUM 53
 
 static float filter_taps[FILTER_TAP_NUM] = {
-  0.004239109487818515,
-  0.00041959938934507755,
-  -0.0026423805193273742,
-  -0.007028887140783344,
-  -0.010165835174624148,
-  -0.00859915891207442,
-  -0.00041026507903428074,
-  0.012235346517659503,
-  0.02275581668995705,
-  0.023265412559111374,
-  0.009805937540421514,
-  -0.013703470367715067,
-  -0.03590683114655655,
-  -0.0434450769955968,
-  -0.028711156019341717,
-  0.004523738539162783,
-  0.04131000858153872,
-  0.062255366637195865,
-  0.0537713658905211,
-  0.016449153334507267,
-  -0.03343275203589259,
-  -0.07105072374285279,
-  -0.07580458054536178,
-  -0.042894864303808185,
-  0.01288431171779728,
-  0.06404248882984026,
-  0.08461450122416873,
-  0.06404248882984026,
-  0.01288431171779728,
-  -0.042894864303808185,
-  -0.07580458054536178,
-  -0.07105072374285279,
-  -0.03343275203589259,
-  0.016449153334507267,
-  0.0537713658905211,
-  0.062255366637195865,
-  0.04131000858153872,
-  0.004523738539162783,
-  -0.028711156019341717,
-  -0.0434450769955968,
-  -0.03590683114655655,
-  -0.013703470367715067,
-  0.009805937540421514,
-  0.023265412559111374,
-  0.02275581668995705,
-  0.012235346517659503,
-  -0.00041026507903428074,
-  -0.00859915891207442,
-  -0.010165835174624148,
-  -0.007028887140783344,
-  -0.0026423805193273742,
-  0.00041959938934507755,
-  0.004239109487818515
+    0.004239109487818515,
+    0.00041959938934507755,
+    -0.0026423805193273742,
+    -0.007028887140783344,
+    -0.010165835174624148,
+    -0.00859915891207442,
+    -0.00041026507903428074,
+    0.012235346517659503,
+    0.02275581668995705,
+    0.023265412559111374,
+    0.009805937540421514,
+    -0.013703470367715067,
+    -0.03590683114655655,
+    -0.0434450769955968,
+    -0.028711156019341717,
+    0.004523738539162783,
+    0.04131000858153872,
+    0.062255366637195865,
+    0.0537713658905211,
+    0.016449153334507267,
+    -0.03343275203589259,
+    -0.07105072374285279,
+    -0.07580458054536178,
+    -0.042894864303808185,
+    0.01288431171779728,
+    0.06404248882984026,
+    0.08461450122416873,
+    0.06404248882984026,
+    0.01288431171779728,
+    -0.042894864303808185,
+    -0.07580458054536178,
+    -0.07105072374285279,
+    -0.03343275203589259,
+    0.016449153334507267,
+    0.0537713658905211,
+    0.062255366637195865,
+    0.04131000858153872,
+    0.004523738539162783,
+    -0.028711156019341717,
+    -0.0434450769955968,
+    -0.03590683114655655,
+    -0.013703470367715067,
+    0.009805937540421514,
+    0.023265412559111374,
+    0.02275581668995705,
+    0.012235346517659503,
+    -0.00041026507903428074,
+    -0.00859915891207442,
+    -0.010165835174624148,
+    -0.007028887140783344,
+    -0.0026423805193273742,
+    0.00041959938934507755,
+    0.004239109487818515
 };
 
 void setup()
 {
+    scheduledNextTick = (long)millis() + loopDtMs;
     pinMode(motor1Pin, OUTPUT);
     pinMode(motor2Pin, OUTPUT);
     digitalWrite(motor1Pin, LOW);
@@ -122,97 +126,116 @@ void setup()
 float heart = 0.0;
 void loop()
 {
-//    digitalWrite(ledPin, HIGH);
-//    delay(50);
-//    digitalWrite(ledPin, LOW);
+    if( scheduledNextTick - (long)millis() > 0 ) {
+        return;
+    }
+
+    scheduledNextTick += loopDtMs;
+
     float speedo = (float)analogRead(speedoPin) / 4096.0;
     float resisto = (float)analogRead(resistoPin) / 4096.0;
     float heart = (float)analogRead(heartPin) / 2048.0 - 1.0;
 
-    if( speedo > 0.6) {
-      speedoTripped = 1;
+    ///////////////////////////////////////////////////////////////////////////
+    // SPEED
+    ///////////////////////////////////////////////////////////////////////////
+    if(speedo > 0.6) {
+        speedoTripped = 1;
     }
-    else if( speedo < 0.4) {
-      speedoTripped = 0;
+    else if(speedo < 0.4) {
+        speedoTripped = 0;
     }
 
     ticksSinceLastSpeedo++;
     int speedoTrippedEdge = 0;
     if(speedoTripped == 1 && lastSpeedoTripped == 0) {
-      speedoTrippedEdge = 1;
-      pedalRPMs = 60.0 / (ticksSinceLastSpeedo * (float)loopDtMs * 0.001);
-      if(pedalRPMs > 300.0) {
-        pedalRPMs = 300.0;
-      }
-      ticksSinceLastSpeedo = 0;
+        speedoTrippedEdge = 1;
+        pedalRPMs = 60.0 / (ticksSinceLastSpeedo * (float)loopDtMs * 0.001);
+        if(pedalRPMs > 300.0) {
+            pedalRPMs = 300.0;
+        }
+        ticksSinceLastSpeedo = 0;
     }
     lastSpeedoTripped = speedoTripped;
 
+    ///////////////////////////////////////////////////////////////////////////
+    // HEART
+    ///////////////////////////////////////////////////////////////////////////
+    //store to buffer
     heartHist[heartIdx] = heart;
     heartIdx = (heartIdx + 1) % 64;
 
+    //apply FIR filter
     float heartFilt = 0.0;
     for(int i = 0; i < FILTER_TAP_NUM; i++ ) {
-      heartFilt += heartHist[(heartIdx - i + 64)%64] * filter_taps[i];
+        heartFilt += heartHist[(heartIdx - i + 64)%64] * filter_taps[i];
     }
 
+    //measure variance
     heartVAR = heartVAR * 0.999 + (heartFilt*heartFilt) * 0.001;
     float heartSTD = sqrt(heartVAR);
 
+    //determine if HB signal is active
+    //int hbActive = abs(heartFilt) > heartSTD * 2.0;
+
+    //determine if HB is likely accurate
+    // * if not locked, time since last is between 300 and 1500ms
+    // * if locked, time since last is within 10ms of previous interval
+
     int prevHeartIsBeating = heartIsBeating;
     if(!heartIsBeating && abs(heartFilt) > heartSTD * 2.0 && ticksSinceLastBeat > 70) {
-      heartIsBeating = 1;
-      float newHeartRateBPM = 60.0 / (ticksSinceLastBeat * (float)loopDtMs * 0.001);
-      if(newHeartRateBPM > 40.0 && newHeartRateBPM < 190.0) {
-        heartRateBPM = newHeartRateBPM;
-      }
-      ticksSinceLastBeat = 0;
+        heartIsBeating = 1;
+        float newHeartRateBPM = 60.0 / (ticksSinceLastBeat * (float)loopDtMs * 0.001);
+        if(newHeartRateBPM > 40.0 && newHeartRateBPM < 190.0) {
+            heartRateBPM = newHeartRateBPM;
+        }
+        ticksSinceLastBeat = 0;
     }
     else {
-      heartIsBeating = 0;
+        heartIsBeating = 0;
     }
     ticksSinceLastBeat++;
+    filtHeartRateBPM = filtHeartRateBPM * 0.95 + heartRateBPM * 0.05;
 
     int resistoDir = 999;
     if(resisto < targetResist - targetResistTol) {
-      digitalWrite(motor1Pin, HIGH);
-      digitalWrite(motor2Pin, LOW);
-      resistoDir = 1;
+        digitalWrite(motor1Pin, HIGH);
+        digitalWrite(motor2Pin, LOW);
+        resistoDir = 1;
     }
     else if(resisto > targetResist + targetResistTol){
-      digitalWrite(motor1Pin, LOW);
-      digitalWrite(motor2Pin, HIGH);
-      resistoDir = -1;
+        digitalWrite(motor1Pin, LOW);
+        digitalWrite(motor2Pin, HIGH);
+        resistoDir = -1;
     }
     else {
-      digitalWrite(motor1Pin, LOW);
-      digitalWrite(motor2Pin, LOW);
-      resistoDir = 0;
+        digitalWrite(motor1Pin, LOW);
+        digitalWrite(motor2Pin, LOW);
+        resistoDir = 0;
     }
 
-  ticksSinceReport++;
-  if(0) {
-    if(ticksSinceReport > 0) {
-      ticksSinceReport = 0;
-  //    Serial.print(speedo);Serial.print(",");
-  //    Serial.print(speedoTrippedEdge);Serial.print(",");
-  //    Serial.print(pedalRPMs);Serial.print(",");
-      Serial.print(10.0*heart);Serial.print(",");
-      Serial.print(10.0*heartFilt);Serial.print(",");
-      Serial.print(10.0*heartSTD);Serial.print(",");
-      Serial.print(10.0*heartIsBeating);Serial.print(",");
-      Serial.println("0");
+    ticksSinceReport++;
+    if(0) {
+        if(ticksSinceReport > 0) {
+            ticksSinceReport = 0;
+            // Serial.print(speedo);Serial.print(",");
+            // Serial.print(speedoTrippedEdge);Serial.print(",");
+            // Serial.print(pedalRPMs);Serial.print(",");
+            Serial.print(10.0*heart);Serial.print(",");
+            Serial.print(10.0*heartFilt);Serial.print(",");
+            Serial.print(10.0*heartSTD);Serial.print(",");
+            Serial.print(10.0*heartIsBeating);Serial.print(",");
+            Serial.println("0");
+        }
+    } else {
+        if(ticksSinceReport > 10) {
+            ticksSinceReport = 0;
+            Serial.print(pedalRPMs);Serial.print(",");
+            Serial.print(heartRateBPM);Serial.print(",");
+            Serial.print(filtHeartRateBPM);
+            Serial.println();
+        }
     }
-  } else {
-    if(ticksSinceReport > 10) {
-      ticksSinceReport = 0;
-      Serial.print(pedalRPMs);Serial.print(",");
-      Serial.print(heartRateBPM);
-      Serial.println();
-    }
-  }
-
-  delay(loopDtMs);
 }
 
 //#include <WiFi.h>
