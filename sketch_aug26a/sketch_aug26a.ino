@@ -24,6 +24,10 @@ int ticksSinceLastBeat = 0;
 float heartRateBPM = 0.0;
 float filtHeartRateBPM = 0.0;
 
+long lastHbMillis = 0;
+int hbRateIsLocked = 0;
+long hbLockedMillisDelta = 0;
+
 int ticksSinceReport = 0;
 
 long loopDtMs = 5;//careful changing this - DSP filters below are tuned to this
@@ -126,7 +130,8 @@ void setup()
 float heart = 0.0;
 void loop()
 {
-    if( scheduledNextTick - (long)millis() > 0 ) {
+    long now = (long)millis();
+    if( scheduledNextTick - now > 0 ) {
         return;
     }
 
@@ -176,27 +181,65 @@ void loop()
     float heartSTD = sqrt(heartVAR);
 
     //determine if HB signal is active
-    //int hbActive = abs(heartFilt) > heartSTD * 2.0;
+    int hbActive = abs(heartFilt) > heartSTD * 2.0;
+
+    long sinceLastHb = now - lastHbMillis;
+
+    if(hbActive) {
+        lastHbMillis = now;
+    }
+
+    // int validHb = 0;
+    // if(hbActive) {
+    //     // Serial.println("heartbeat!");
+    //     if(hbRateIsLocked) {
+    //         if(sinceLastHb > hbLockedMillisDelta - 30 && sinceLastHb < hbLockedMillisDelta + 30)
+    //             validHb = 1;
+    //     } else {
+    //         if(sinceLastHb > 300) {//} && sinceLastHb < 1500) {
+    //             validHb = 1;
+    //         }
+    //     }
+    // }
+
+    // if(validHb) {
+    //     Serial.println("valid heartbeat!");
+    //     Serial.print("sinceLastHb=");Serial.println(sinceLastHb);
+    //     lastHbMillis = now;
+    //     hbLockedMillisDelta = sinceLastHb;
+    //     if(sinceLastHb < 1500) {
+    //         Serial.println("hb locked!");
+    //         hbRateIsLocked = 1;
+    //     }
+    // }
+
+    // if(hbRateIsLocked && sinceLastHb > 1500) {
+    //     Serial.println("hb unlocked!");
+    //     hbRateIsLocked = 0;
+    // }
 
     //determine if HB is likely accurate
     // * if not locked, time since last is between 300 and 1500ms
     // * if locked, time since last is within 10ms of previous interval
 
-    int prevHeartIsBeating = heartIsBeating;
-    if(!heartIsBeating && abs(heartFilt) > heartSTD * 2.0 && ticksSinceLastBeat > 70) {
-        heartIsBeating = 1;
-        float newHeartRateBPM = 60.0 / (ticksSinceLastBeat * (float)loopDtMs * 0.001);
-        if(newHeartRateBPM > 40.0 && newHeartRateBPM < 190.0) {
-            heartRateBPM = newHeartRateBPM;
-        }
-        ticksSinceLastBeat = 0;
-    }
-    else {
-        heartIsBeating = 0;
-    }
-    ticksSinceLastBeat++;
-    filtHeartRateBPM = filtHeartRateBPM * 0.95 + heartRateBPM * 0.05;
+    // int prevHeartIsBeating = heartIsBeating;
+    // if(!heartIsBeating && abs(heartFilt) > heartSTD * 2.0 && ticksSinceLastBeat > 70) {
+    //     heartIsBeating = 1;
+    //     float newHeartRateBPM = 60.0 / (ticksSinceLastBeat * (float)loopDtMs * 0.001);
+    //     if(newHeartRateBPM > 40.0 && newHeartRateBPM < 190.0) {
+    //         heartRateBPM = newHeartRateBPM;
+    //     }
+    //     ticksSinceLastBeat = 0;
+    // }
+    // else {
+    //     heartIsBeating = 0;
+    // }
+    // ticksSinceLastBeat++;
+    // filtHeartRateBPM = filtHeartRateBPM * 0.9995 + heartRateBPM * 0.0005;
 
+    ///////////////////////////////////////////////////////////////////////////
+    // RESISTANCE
+    ///////////////////////////////////////////////////////////////////////////
     int resistoDir = 999;
     if(resisto < targetResist - targetResistTol) {
         digitalWrite(motor1Pin, HIGH);
@@ -214,25 +257,32 @@ void loop()
         resistoDir = 0;
     }
 
+    ///////////////////////////////////////////////////////////////////////////
+    // REPORTING
+    ///////////////////////////////////////////////////////////////////////////
     ticksSinceReport++;
-    if(0) {
+    if(1) {
         if(ticksSinceReport > 0) {
             ticksSinceReport = 0;
             // Serial.print(speedo);Serial.print(",");
             // Serial.print(speedoTrippedEdge);Serial.print(",");
             // Serial.print(pedalRPMs);Serial.print(",");
-            Serial.print(10.0*heart);Serial.print(",");
-            Serial.print(10.0*heartFilt);Serial.print(",");
-            Serial.print(10.0*heartSTD);Serial.print(",");
-            Serial.print(10.0*heartIsBeating);Serial.print(",");
-            Serial.println("0");
+            // Serial.print(10.0*heart);Serial.print(",");
+            // Serial.print(10.0*heartFilt);Serial.print(",");
+            // Serial.print(10.0*heartSTD);Serial.print(",");
+            // Serial.print(10.0*heartIsBeating);Serial.print(",");
+            // Serial.println("0");
+            Serial.println(sinceLastHb);
         }
     } else {
         if(ticksSinceReport > 10) {
             ticksSinceReport = 0;
-            Serial.print(pedalRPMs);Serial.print(",");
-            Serial.print(heartRateBPM);Serial.print(",");
-            Serial.print(filtHeartRateBPM);
+            // Serial.print(pedalRPMs);Serial.print(",");
+            // Serial.print(heartRateBPM);Serial.print(",");
+            // Serial.print(filtHeartRateBPM);
+            Serial.print(lastHbMillis);Serial.print(",");
+            Serial.print(hbLockedMillisDelta);Serial.print(",");
+            Serial.print(hbRateIsLocked);
             Serial.println();
         }
     }
