@@ -9,12 +9,12 @@ int motor2Pin = 22;
 
 float heartHist[64];
 int heartIdx = 0;
-float heartVAR = 0.0;
+// float heartVAR = 0.0;
 
 float heartFiltEnveloped = 0.0;
 float heart2Hist[64];
 int heart2Idx = 0;
-float heart2VAR = 0.0;
+float heart2Xave = 0.0;
 
 float targetResist = 0.4;
 float targetResistTol = 0.04;
@@ -272,11 +272,12 @@ void loop()
     }
 
     //measure variance
-    heartVAR = heartVAR * 0.999 + (heartFilt*heartFilt) * 0.001;
-    float heartSTD = sqrt(heartVAR);
+    //heartVAR = heartVAR * 0.999 + heartFilt * 0.001;
+    //float heartSTD = sqrt(heartVAR);
+    heart2Xave = heart2Xave * 0.999 + heart2Filt * 0.001;
 
     //determine if HB signal is active
-    int hbActive = abs(heartFilt) > heartSTD * 2.0;
+    int hbActive = heart2Filt > heart2Xave * 2.0;
 
     long millisSinceLastHb = now - lastHbMillis;
     if(hbActive && millisSinceLastHb > 400) {
@@ -364,17 +365,18 @@ void loop()
     ///////////////////////////////////////////////////////////////////////////
     // REPORTING
     ///////////////////////////////////////////////////////////////////////////
-    if(1) {  // raw heart signal diagnostics
+    if(0) {  // raw heart signal diagnostics
         if(now - lastReportMillis > 0) {
             lastReportMillis = now;
             //Serial.print(10.0*heart);Serial.print(",");
-            Serial.print(10.0*heartFilt);Serial.print(",");
-            Serial.print(10.0*heartFiltEnveloped);Serial.print(",");
-            Serial.print(10.0*heart2Filt);Serial.println();
+            Serial.print(1000.0*heartFilt);Serial.print(",");
+            Serial.print(1000.0*heartFiltEnveloped);Serial.print(",");
+            Serial.print(1000.0*heart2Xave);Serial.print(",");
+            Serial.print(1000.0*heart2Filt);Serial.println();
         }
     }
 
-    if(0) {  // best final reporting
+    if(1) {  // best final reporting
         if(now - lastReportMillis > 100) {
             lastReportMillis = now;
             Serial.print(pedalRPM);Serial.print(",");
