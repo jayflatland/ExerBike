@@ -11,6 +11,11 @@ float heartHist[64];
 int heartIdx = 0;
 float heartVAR = 0.0;
 
+float heartFiltEnveloped = 0.0;
+float heart2Hist[64];
+int heart2Idx = 0;
+float heart2VAR = 0.0;
+
 float targetResist = 0.4;
 float targetResistTol = 0.04;
 
@@ -116,6 +121,84 @@ static float filter_taps[FILTER_TAP_NUM] = {
     0.004239109487818515
 };
 
+
+/*
+
+FIR filter designed with
+http://t-filter.appspot.com
+
+sampling frequency: 200 Hz
+
+* 0 Hz - 5 Hz
+  gain = 1
+  desired ripple = 5 dB
+  actual ripple = 3.7428345110667873 dB
+
+* 10 Hz - 100 Hz
+  gain = 0
+  desired attenuation = -40 dB
+  actual attenuation = -40.91898560530998 dB
+
+*/
+
+#define FILTER_TAP_NUM2 53
+
+static double filter_taps2[FILTER_TAP_NUM2] = {
+  -0.005946901269245122,
+  -0.0032211059347523195,
+  -0.0038440699902768383,
+  -0.004335185893314178,
+  -0.004618082667223961,
+  -0.004610544806595846,
+  -0.004229573289430787,
+  -0.0033917453968697483,
+  -0.002028051041620645,
+  -0.0000779737869300087,
+  0.0024926916286312248,
+  0.00569982765877049,
+  0.009534812572960348,
+  0.013961833701309628,
+  0.018917781140524174,
+  0.024309521855601125,
+  0.030016610101736976,
+  0.03589781173597167,
+  0.04180040186066688,
+  0.047555344979786536,
+  0.05298415762863876,
+  0.05792015092713824,
+  0.06221396733171683,
+  0.06570516590449127,
+  0.06829411291109369,
+  0.069881349050518,
+  0.07041715978547827,
+  0.069881349050518,
+  0.06829411291109369,
+  0.06570516590449127,
+  0.06221396733171683,
+  0.05792015092713824,
+  0.05298415762863876,
+  0.047555344979786536,
+  0.04180040186066688,
+  0.03589781173597167,
+  0.030016610101736976,
+  0.024309521855601125,
+  0.018917781140524174,
+  0.013961833701309628,
+  0.009534812572960348,
+  0.00569982765877049,
+  0.0024926916286312248,
+  -0.0000779737869300087,
+  -0.002028051041620645,
+  -0.0033917453968697483,
+  -0.004229573289430787,
+  -0.004610544806595846,
+  -0.004618082667223961,
+  -0.004335185893314178,
+  -0.0038440699902768383,
+  -0.0032211059347523195,
+  -0.005946901269245122
+};
+
 void setup()
 {
     scheduledNextTick = (long)millis() + loopDtMs;
@@ -172,6 +255,20 @@ void loop()
     float heartFilt = 0.0;
     for(int i = 0; i < FILTER_TAP_NUM; i++ ) {
         heartFilt += heartHist[(heartIdx - i + 64)%64] * filter_taps[i];
+    }
+
+    if( heartFilt > heartFiltEnveloped) {
+        heartFiltEnveloped = heartFilt;
+    }
+    heartFiltEnveloped *= 0.95;
+
+    heart2Hist[heart2Idx] = heartFiltEnveloped;
+    heart2Idx = (heart2Idx + 1) % 64;
+
+    //apply FIR filter2
+    float heart2Filt = 0.0;
+    for(int i = 0; i < FILTER_TAP_NUM2; i++ ) {
+        heart2Filt += heart2Hist[(heart2Idx - i + 64)%64] * filter_taps2[i];
     }
 
     //measure variance
@@ -267,19 +364,21 @@ void loop()
     ///////////////////////////////////////////////////////////////////////////
     // REPORTING
     ///////////////////////////////////////////////////////////////////////////
-    if(0) {
+    if(1) {  // raw heart signal diagnostics
         if(now - lastReportMillis > 0) {
             lastReportMillis = now;
-            Serial.print(pedalRPM);Serial.print(",");
-            Serial.print(heartBPM);Serial.print(",");
-            Serial.println("0");
+            //Serial.print(10.0*heart);Serial.print(",");
+            Serial.print(10.0*heartFilt);Serial.print(",");
+            Serial.print(10.0*heartFiltEnveloped);Serial.print(",");
+            Serial.print(10.0*heart2Filt);Serial.println();
         }
-    } else {
+    }
+
+    if(0) {  // best final reporting
         if(now - lastReportMillis > 100) {
             lastReportMillis = now;
             Serial.print(pedalRPM);Serial.print(",");
-            Serial.print(heartBPM);Serial.print(",");
-            Serial.println("0");
+            Serial.print(heartBPM);Serial.println();
         }
     }
 }
