@@ -19,7 +19,7 @@ df['heart_rct_max'] = df.heart_ds4.rolling(400).max()
 df['heart_pulse_thresh'] = df['heart_rct_max'] * 0.5
 df['heart_pulse'] = np.where(df['heart_ds4'] > df['heart_pulse_thresh'], 1.0, 0.0)
 df['heart_pulse_t'] = np.where((df.heart_pulse > 0.5) & (df.heart_pulse.shift(1) < 0.5), df.t, np.nan)
-df['heart_pulse_t'] = df.heart_pulse_t.ffill()
+df['heart_pulse_t'] = df['heart_pulse_t'].ffill()
 df['heart_pulse_t'] = (df['heart_pulse_t'] - df['heart_pulse_t'].shift(1)).replace(0.0, np.nan).ffill()
 
 df['heart_bpm'] = 60.0 / df['heart_pulse_t']
@@ -28,32 +28,46 @@ df['heart_bpm'] = np.where(np.abs(df['heart_bpm_delta']) < 10, df['heart_bpm'], 
 df['heart_bpm'] = df['heart_bpm'].ffill()
 #df = df[4000:5000]
 
-fig, axs = plt.subplots(5, 1, figsize=(15, 10))
-plt.sca(axs[0])
-plt.plot(df.heart)
-plt.grid()
-plt.legend()
+df['speedo_pulse_t'] = np.where((df.speedo > 0.5) & (df.speedo.shift(1) < 0.5), df.t, np.nan)
+#df['speedo_pulse_t'] = np.where((df.speedo > 0.5) & (df.speedo.shift(1) < 0.5), 1.0, 0.0)
+df['speedo_pulse_t'] = df['speedo_pulse_t'].ffill()
+df['speedo_pulse_t'] = (df['speedo_pulse_t'] - df['speedo_pulse_t'].shift(1)).replace(0.0, np.nan).ffill()
+df['speedo_rpm'] = 60.0 / df['speedo_pulse_t']
+df['speedo_rpm'] = df['speedo_rpm'].fillna(0.0)
 
-plt.sca(axs[1])
+fig, axs = plt.subplots(4, 1, figsize=(15, 10), sharex=True)
+plt.sca(axs[0])
+#plt.plot(df.heart)
 plt.plot(df.heart_ds4)
 plt.plot(df.heart_pulse_thresh)
 plt.grid()
 plt.legend()
 
-plt.sca(axs[2])
+plt.sca(axs[1])
 plt.plot(df.heart_pulse)
 plt.grid()
 plt.legend()
 
-plt.sca(axs[3])
+plt.sca(axs[2])
 plt.plot(df['heart_bpm'])
 plt.ylim(40.0, 200.0)
 plt.grid()
 plt.legend()
 
-plt.sca(axs[4])
-plt.plot(df['speedo'])
+plt.sca(axs[3])
+#plt.plot(df['speedo'])
+#plt.plot(df['speedo_pulse_t'])
+plt.plot(df['speedo_rpm'])
 plt.grid()
 plt.legend()
 
+plt.show()
+
+# %%
+fig, axs = plt.subplots(1, 1, figsize=(15, 10))
+plt.sca(axs)
+plt.plot(df['heart_bpm'])
+plt.ylim(40.0, 200.0)
+plt.grid()
+plt.legend()
 plt.show()
