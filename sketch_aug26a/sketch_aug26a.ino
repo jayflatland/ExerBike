@@ -6,6 +6,7 @@ int resistoPin = 39;
 int heartPin = 34;
 int motor1Pin = 23;
 int motor2Pin = 22;
+int blinkyPin = 21;
 
 float heartHist[64];
 int heartIdx = 0;
@@ -15,6 +16,8 @@ float heartFiltEnveloped = 0.0;
 float heart2Hist[64];
 int heart2Idx = 0;
 float heart2Xave = 0.0;
+
+int blinkyPinValue = 0;
 
 float targetResist = 0.4;
 float targetResistTol = 0.04;
@@ -204,8 +207,10 @@ void setup()
     scheduledNextTick = (long)millis() + loopDtMs;
     pinMode(motor1Pin, OUTPUT);
     pinMode(motor2Pin, OUTPUT);
+    pinMode(blinkyPin, OUTPUT);
     digitalWrite(motor1Pin, LOW);
     digitalWrite(motor2Pin, LOW);
+    digitalWrite(blinkyPin, LOW);
     pinMode(speedoPin, INPUT);
     pinMode(resistoPin, INPUT);
     pinMode(heartPin, INPUT);
@@ -226,73 +231,73 @@ void loop()
     float resisto = (float)analogRead(resistoPin) / 4096.0;
     float heart = (float)analogRead(heartPin) / 2048.0 - 1.0;
 
-    ///////////////////////////////////////////////////////////////////////////
-    // SPEED
-    ///////////////////////////////////////////////////////////////////////////
-    long millisSinceLastSpeedoTripped = now - lastSpeedoTrippedMillis;
-    if(speedo < 0.4 && millisSinceLastSpeedoTripped > 500) {
-        lastSpeedoTrippedMillis = now;
-    }
+    // ///////////////////////////////////////////////////////////////////////////
+    // // SPEED
+    // ///////////////////////////////////////////////////////////////////////////
+    // long millisSinceLastSpeedoTripped = now - lastSpeedoTrippedMillis;
+    // if(speedo < 0.4 && millisSinceLastSpeedoTripped > 500) {
+    //     lastSpeedoTrippedMillis = now;
+    // }
 
-    if(millisSinceLastSpeedoTripped > 3000) {
-        millisSinceLastSpeedoTripped = 3000;
-    }
+    // if(millisSinceLastSpeedoTripped > 3000) {
+    //     millisSinceLastSpeedoTripped = 3000;
+    // }
 
-    if((float)millisSinceLastSpeedoTripped > pedalPeriod) {
-        pedalPeriod = (float)millisSinceLastSpeedoTripped;
-    }
-    pedalPeriod = pedalPeriod * 0.9995;
-    pedalRPM = 60000.0 / pedalPeriod;
+    // if((float)millisSinceLastSpeedoTripped > pedalPeriod) {
+    //     pedalPeriod = (float)millisSinceLastSpeedoTripped;
+    // }
+    // pedalPeriod = pedalPeriod * 0.9995;
+    // pedalRPM = 60000.0 / pedalPeriod;
 
-    ///////////////////////////////////////////////////////////////////////////
-    // HEART
-    ///////////////////////////////////////////////////////////////////////////
-    //store to buffer
-    heartHist[heartIdx] = heart;
-    heartIdx = (heartIdx + 1) % 64;
+    // ///////////////////////////////////////////////////////////////////////////
+    // // HEART
+    // ///////////////////////////////////////////////////////////////////////////
+    // //store to buffer
+    // heartHist[heartIdx] = heart;
+    // heartIdx = (heartIdx + 1) % 64;
 
-    //apply FIR filter
-    float heartFilt = 0.0;
-    for(int i = 0; i < FILTER_TAP_NUM; i++ ) {
-        heartFilt += heartHist[(heartIdx - i + 64)%64] * filter_taps[i];
-    }
+    // //apply FIR filter
+    // float heartFilt = 0.0;
+    // for(int i = 0; i < FILTER_TAP_NUM; i++ ) {
+    //     heartFilt += heartHist[(heartIdx - i + 64)%64] * filter_taps[i];
+    // }
 
-    if( heartFilt > heartFiltEnveloped) {
-        heartFiltEnveloped = heartFilt;
-    }
-    heartFiltEnveloped *= 0.95;
+    // if( heartFilt > heartFiltEnveloped) {
+    //     heartFiltEnveloped = heartFilt;
+    // }
+    // heartFiltEnveloped *= 0.95;
 
-    heart2Hist[heart2Idx] = heartFiltEnveloped;
-    heart2Idx = (heart2Idx + 1) % 64;
+    // heart2Hist[heart2Idx] = heartFiltEnveloped;
+    // heart2Idx = (heart2Idx + 1) % 64;
 
-    //apply FIR filter2
-    float heart2Filt = 0.0;
-    for(int i = 0; i < FILTER_TAP_NUM2; i++ ) {
-        heart2Filt += heart2Hist[(heart2Idx - i + 64)%64] * filter_taps2[i];
-    }
+    // //apply FIR filter2
+    // float heart2Filt = 0.0;
+    // for(int i = 0; i < FILTER_TAP_NUM2; i++ ) {
+    //     heart2Filt += heart2Hist[(heart2Idx - i + 64)%64] * filter_taps2[i];
+    // }
 
-    //measure variance
-    //heartVAR = heartVAR * 0.999 + heartFilt * 0.001;
-    //float heartSTD = sqrt(heartVAR);
-    heart2Xave = heart2Xave * 0.999 + heart2Filt * 0.001;
+    // //measure variance
+    // //heartVAR = heartVAR * 0.999 + heartFilt * 0.001;
+    // //float heartSTD = sqrt(heartVAR);
+    // heart2Xave = heart2Xave * 0.999 + heart2Filt * 0.001;
 
-    //determine if HB signal is active
-    int hbActive = heart2Filt > heart2Xave * 2.0;
+    // //determine if HB signal is active
+    // int hbActive = heart2Filt > heart2Xave * 2.0;
 
-    long millisSinceLastHb = now - lastHbMillis;
-    if(hbActive && millisSinceLastHb > 400) {
-        lastHbMillis = now;
-    }
+    // long millisSinceLastHb = now - lastHbMillis;
+    // if(hbActive && millisSinceLastHb > 400) {
+    //     lastHbMillis = now;
+    // }
 
-    if(millisSinceLastHb > 3000) {
-        millisSinceLastHb = 3000;
-    }
+    // if(millisSinceLastHb > 3000) {
+    //     millisSinceLastHb = 3000;
+    // }
 
-    if((float)millisSinceLastHb > heartPeriod) {
-        heartPeriod = (float)millisSinceLastHb;
-    }
-    heartPeriod = heartPeriod * 0.9995;
-    heartBPM = 60000.0 / heartPeriod;
+    // if((float)millisSinceLastHb > heartPeriod) {
+    //     heartPeriod = (float)millisSinceLastHb;
+    // }
+    // heartPeriod = heartPeriod * 0.9995;
+    // heartBPM = 60000.0 / heartPeriod;
 
     // int validHb = 0;
     // if(hbActive) {
@@ -343,6 +348,12 @@ void loop()
     // filtHeartRateBPM = filtHeartRateBPM * 0.9995 + heartBPM * 0.0005;
 
     ///////////////////////////////////////////////////////////////////////////
+    // BLINKY PIN
+    ///////////////////////////////////////////////////////////////////////////
+    blinkyPinValue = ~blinkyPinValue;
+    digitalWrite(blinkyPin, blinkyPinValue);
+
+    ///////////////////////////////////////////////////////////////////////////
     // RESISTANCE
     ///////////////////////////////////////////////////////////////////////////
     int resistoDir = 999;
@@ -365,18 +376,21 @@ void loop()
     ///////////////////////////////////////////////////////////////////////////
     // REPORTING
     ///////////////////////////////////////////////////////////////////////////
-    if(0) {  // raw heart signal diagnostics
+    if(1) {  // raw heart signal diagnostics
         if(now - lastReportMillis > 0) {
             lastReportMillis = now;
-            //Serial.print(10.0*heart);Serial.print(",");
-            Serial.print(1000.0*heartFilt);Serial.print(",");
-            Serial.print(1000.0*heartFiltEnveloped);Serial.print(",");
-            Serial.print(1000.0*heart2Xave);Serial.print(",");
-            Serial.print(1000.0*heart2Filt);Serial.println();
+            Serial.print(heart);Serial.print(",");
+            Serial.print(resisto);Serial.print(",");
+            Serial.print(speedo);Serial.println();
+            // Serial.print(1000.0*heartFilt);Serial.print(",");
+            // Serial.print(1000.0*heartFiltEnveloped);Serial.print(",");
+            // Serial.print(1000.0*heart2Xave);Serial.print(",");
+            // Serial.print(1000.0*heart2Filt);
+            //Serial.println();
         }
     }
 
-    if(1) {  // best final reporting
+    if(0) {  // best final reporting
         if(now - lastReportMillis > 100) {
             lastReportMillis = now;
             Serial.print(pedalRPM);Serial.print(",");
