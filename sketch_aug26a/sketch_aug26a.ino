@@ -8,33 +8,15 @@ int motor1Pin = 23;
 int motor2Pin = 22;
 int blinkyPin = 21;
 
-float heartHist[64];
+#define HBUF_SZ 256
+float heartHist[HBUF_SZ];
 int heartIdx = 0;
-// float heartVAR = 0.0;
-
-float heartFiltEnveloped = 0.0;
-float heart2Hist[64];
-int heart2Idx = 0;
-float heart2Xave = 0.0;
 
 int blinkyPinValue = 0;
 
 float targetResist = 0.4;
 float targetResistTol = 0.04;
 
-long lastSpeedoTrippedMillis = 0;
-float pedalPeriod = 0.0;
-float pedalRPM = 0.0;
-
-// int heartIsBeating = 0;
-// int ticksSinceLastBeat = 0;
-// float heartBPM = 0.0;
-// float filtHeartRateBPM = 0.0;
-
-long lastHbMillis = 0;
-int hbRateIsLocked = 0;
-long hbLockedMillisDelta = 0;
-float heartPeriod = 0.0;
 float heartBPM = 0.0;
 
 
@@ -42,165 +24,6 @@ long lastReportMillis = 0;
 
 long loopDtMs = 5;//careful changing this - DSP filters below are tuned to this
 
-/*
-
-FIR filter designed with
-http://t-filter.appspot.com
-
-sampling frequency: 200 Hz
-
-* 0 Hz - 15 Hz
-  gain = 0
-  desired attenuation = -40 dB
-  actual attenuation = -43.02125963160662 dB
-
-* 20 Hz - 25 Hz
-  gain = 1
-  desired ripple = 5 dB
-  actual ripple = 2.920816963599269 dB
-
-* 30 Hz - 100 Hz
-  gain = 0
-  desired attenuation = -40 dB
-  actual attenuation = -43.02125963160662 dB
-
-*/
-
-#define FILTER_TAP_NUM 53
-
-static float filter_taps[FILTER_TAP_NUM] = {
-    0.004239109487818515,
-    0.00041959938934507755,
-    -0.0026423805193273742,
-    -0.007028887140783344,
-    -0.010165835174624148,
-    -0.00859915891207442,
-    -0.00041026507903428074,
-    0.012235346517659503,
-    0.02275581668995705,
-    0.023265412559111374,
-    0.009805937540421514,
-    -0.013703470367715067,
-    -0.03590683114655655,
-    -0.0434450769955968,
-    -0.028711156019341717,
-    0.004523738539162783,
-    0.04131000858153872,
-    0.062255366637195865,
-    0.0537713658905211,
-    0.016449153334507267,
-    -0.03343275203589259,
-    -0.07105072374285279,
-    -0.07580458054536178,
-    -0.042894864303808185,
-    0.01288431171779728,
-    0.06404248882984026,
-    0.08461450122416873,
-    0.06404248882984026,
-    0.01288431171779728,
-    -0.042894864303808185,
-    -0.07580458054536178,
-    -0.07105072374285279,
-    -0.03343275203589259,
-    0.016449153334507267,
-    0.0537713658905211,
-    0.062255366637195865,
-    0.04131000858153872,
-    0.004523738539162783,
-    -0.028711156019341717,
-    -0.0434450769955968,
-    -0.03590683114655655,
-    -0.013703470367715067,
-    0.009805937540421514,
-    0.023265412559111374,
-    0.02275581668995705,
-    0.012235346517659503,
-    -0.00041026507903428074,
-    -0.00859915891207442,
-    -0.010165835174624148,
-    -0.007028887140783344,
-    -0.0026423805193273742,
-    0.00041959938934507755,
-    0.004239109487818515
-};
-
-
-/*
-
-FIR filter designed with
-http://t-filter.appspot.com
-
-sampling frequency: 200 Hz
-
-* 0 Hz - 5 Hz
-  gain = 1
-  desired ripple = 5 dB
-  actual ripple = 3.7428345110667873 dB
-
-* 10 Hz - 100 Hz
-  gain = 0
-  desired attenuation = -40 dB
-  actual attenuation = -40.91898560530998 dB
-
-*/
-
-#define FILTER_TAP_NUM2 53
-
-static double filter_taps2[FILTER_TAP_NUM2] = {
-  -0.005946901269245122,
-  -0.0032211059347523195,
-  -0.0038440699902768383,
-  -0.004335185893314178,
-  -0.004618082667223961,
-  -0.004610544806595846,
-  -0.004229573289430787,
-  -0.0033917453968697483,
-  -0.002028051041620645,
-  -0.0000779737869300087,
-  0.0024926916286312248,
-  0.00569982765877049,
-  0.009534812572960348,
-  0.013961833701309628,
-  0.018917781140524174,
-  0.024309521855601125,
-  0.030016610101736976,
-  0.03589781173597167,
-  0.04180040186066688,
-  0.047555344979786536,
-  0.05298415762863876,
-  0.05792015092713824,
-  0.06221396733171683,
-  0.06570516590449127,
-  0.06829411291109369,
-  0.069881349050518,
-  0.07041715978547827,
-  0.069881349050518,
-  0.06829411291109369,
-  0.06570516590449127,
-  0.06221396733171683,
-  0.05792015092713824,
-  0.05298415762863876,
-  0.047555344979786536,
-  0.04180040186066688,
-  0.03589781173597167,
-  0.030016610101736976,
-  0.024309521855601125,
-  0.018917781140524174,
-  0.013961833701309628,
-  0.009534812572960348,
-  0.00569982765877049,
-  0.0024926916286312248,
-  -0.0000779737869300087,
-  -0.002028051041620645,
-  -0.0033917453968697483,
-  -0.004229573289430787,
-  -0.004610544806595846,
-  -0.004618082667223961,
-  -0.004335185893314178,
-  -0.0038440699902768383,
-  -0.0032211059347523195,
-  -0.005946901269245122
-};
 
 void setup()
 {
@@ -231,124 +54,31 @@ void loop()
     float resisto = (float)analogRead(resistoPin) / 4096.0;
     float heart = (float)analogRead(heartPin) / 2048.0 - 1.0;
 
-    // ///////////////////////////////////////////////////////////////////////////
-    // // SPEED
-    // ///////////////////////////////////////////////////////////////////////////
-    // long millisSinceLastSpeedoTripped = now - lastSpeedoTrippedMillis;
-    // if(speedo < 0.4 && millisSinceLastSpeedoTripped > 500) {
-    //     lastSpeedoTrippedMillis = now;
-    // }
+    ///////////////////////////////////////////////////////////////////////////
+    // Heart filtering
+    ///////////////////////////////////////////////////////////////////////////
+    heartHist[heartIdx] = heart;
+    heartIdx = (heartIdx + 1) % HBUF_SZ;
 
-    // if(millisSinceLastSpeedoTripped > 3000) {
-    //     millisSinceLastSpeedoTripped = 3000;
-    // }
+    int heartIdx4 = (heartIdx + HBUF_SZ - 4) % HBUF_SZ;
+    int heartIdx7 = (heartIdx + HBUF_SZ - 7) % HBUF_SZ;
 
-    // if((float)millisSinceLastSpeedoTripped > pedalPeriod) {
-    //     pedalPeriod = (float)millisSinceLastSpeedoTripped;
-    // }
-    // pedalPeriod = pedalPeriod * 0.9995;
-    // pedalRPM = 60000.0 / pedalPeriod;
+    float heart_ds4 = heart * 0.7 - heartHist[heartIdx4] + heartHist[heartIdx7] * 0.3;
+    float heart_rct_max = 0.0;
+    for(int i = 0; i < HBUF_SZ; i++) {
+        if(heartHist[i] > heart_rct_max) {
+            heart_rct_max = heartHist[i];
+        }
+    }
 
-    // ///////////////////////////////////////////////////////////////////////////
-    // // HEART
-    // ///////////////////////////////////////////////////////////////////////////
-    // //store to buffer
-    // heartHist[heartIdx] = heart;
-    // heartIdx = (heartIdx + 1) % 64;
+    float heart_pulse_thresh = heart_rct_max * 0.5;
 
-    // //apply FIR filter
-    // float heartFilt = 0.0;
-    // for(int i = 0; i < FILTER_TAP_NUM; i++ ) {
-    //     heartFilt += heartHist[(heartIdx - i + 64)%64] * filter_taps[i];
-    // }
+    float heart_pulse = heart_ds4 > heart_pulse_thresh ? 1.0 : 0.0;
 
-    // if( heartFilt > heartFiltEnveloped) {
-    //     heartFiltEnveloped = heartFilt;
-    // }
-    // heartFiltEnveloped *= 0.95;
-
-    // heart2Hist[heart2Idx] = heartFiltEnveloped;
-    // heart2Idx = (heart2Idx + 1) % 64;
-
-    // //apply FIR filter2
-    // float heart2Filt = 0.0;
-    // for(int i = 0; i < FILTER_TAP_NUM2; i++ ) {
-    //     heart2Filt += heart2Hist[(heart2Idx - i + 64)%64] * filter_taps2[i];
-    // }
-
-    // //measure variance
-    // //heartVAR = heartVAR * 0.999 + heartFilt * 0.001;
-    // //float heartSTD = sqrt(heartVAR);
-    // heart2Xave = heart2Xave * 0.999 + heart2Filt * 0.001;
-
-    // //determine if HB signal is active
-    // int hbActive = heart2Filt > heart2Xave * 2.0;
-
-    // long millisSinceLastHb = now - lastHbMillis;
-    // if(hbActive && millisSinceLastHb > 400) {
-    //     lastHbMillis = now;
-    // }
-
-    // if(millisSinceLastHb > 3000) {
-    //     millisSinceLastHb = 3000;
-    // }
-
-    // if((float)millisSinceLastHb > heartPeriod) {
-    //     heartPeriod = (float)millisSinceLastHb;
-    // }
-    // heartPeriod = heartPeriod * 0.9995;
-    // heartBPM = 60000.0 / heartPeriod;
-
-    // int validHb = 0;
-    // if(hbActive) {
-    //     // Serial.println("heartbeat!");
-    //     if(hbRateIsLocked) {
-    //         if(millisSinceLastHb > hbLockedMillisDelta - 30 && millisSinceLastHb < hbLockedMillisDelta + 30)
-    //             validHb = 1;
-    //     } else {
-    //         if(millisSinceLastHb > 300) {//} && millisSinceLastHb < 1500) {
-    //             validHb = 1;
-    //         }
-    //     }
-    // }
-
-    // if(validHb) {
-    //     Serial.println("valid heartbeat!");
-    //     Serial.print("millisSinceLastHb=");Serial.println(millisSinceLastHb);
-    //     lastHbMillis = now;
-    //     hbLockedMillisDelta = millisSinceLastHb;
-    //     if(millisSinceLastHb < 1500) {
-    //         Serial.println("hb locked!");
-    //         hbRateIsLocked = 1;
-    //     }
-    // }
-
-    // if(hbRateIsLocked && millisSinceLastHb > 1500) {
-    //     Serial.println("hb unlocked!");
-    //     hbRateIsLocked = 0;
-    // }
-
-    //determine if HB is likely accurate
-    // * if not locked, time since last is between 300 and 1500ms
-    // * if locked, time since last is within 10ms of previous interval
-
-    // int prevHeartIsBeating = heartIsBeating;
-    // if(!heartIsBeating && abs(heartFilt) > heartSTD * 2.0 && ticksSinceLastBeat > 70) {
-    //     heartIsBeating = 1;
-    //     float newHeartRateBPM = 60.0 / (ticksSinceLastBeat * (float)loopDtMs * 0.001);
-    //     if(newHeartRateBPM > 40.0 && newHeartRateBPM < 190.0) {
-    //         heartBPM = newHeartRateBPM;
-    //     }
-    //     ticksSinceLastBeat = 0;
-    // }
-    // else {
-    //     heartIsBeating = 0;
-    // }
-    // ticksSinceLastBeat++;
-    // filtHeartRateBPM = filtHeartRateBPM * 0.9995 + heartBPM * 0.0005;
+    //float heart_pulse_t
 
     ///////////////////////////////////////////////////////////////////////////
-    // BLINKY PIN
+    // BLINKY PIN (200Hz calibration)
     ///////////////////////////////////////////////////////////////////////////
     blinkyPinValue = ~blinkyPinValue;
     digitalWrite(blinkyPin, blinkyPinValue);
@@ -379,22 +109,10 @@ void loop()
     if(1) {  // raw heart signal diagnostics
         if(now - lastReportMillis > 0) {
             lastReportMillis = now;
-            Serial.print(heart);Serial.print(",");
-            Serial.print(resisto);Serial.print(",");
-            Serial.print(speedo);Serial.println();
-            // Serial.print(1000.0*heartFilt);Serial.print(",");
-            // Serial.print(1000.0*heartFiltEnveloped);Serial.print(",");
-            // Serial.print(1000.0*heart2Xave);Serial.print(",");
-            // Serial.print(1000.0*heart2Filt);
-            //Serial.println();
-        }
-    }
-
-    if(0) {  // best final reporting
-        if(now - lastReportMillis > 100) {
-            lastReportMillis = now;
-            Serial.print(pedalRPM);Serial.print(",");
-            Serial.print(heartBPM);Serial.println();
+            Serial.print(10.0*heart);Serial.print(",");
+            Serial.print(10.0*heart_pulse);Serial.print(",");
+            Serial.print(10.0*resisto);Serial.print(",");
+            Serial.print(10.0*speedo);Serial.println();
         }
     }
 }
