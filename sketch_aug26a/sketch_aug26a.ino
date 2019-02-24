@@ -1,5 +1,6 @@
 long scheduledNextTick;
 
+int resetPin = 0;
 int speedoPin = 36;
 int resistoPin = 39;
 int heartPin = 34;
@@ -18,11 +19,13 @@ float targetResistTol = 0.04;
 
 float heartBPM = 0.0;
 
+float lastSpeedo = 0.0;
 
 long lastReportMillis = 0;
 
 long loopDtMs = 5;//careful changing this - DSP filters below are tuned to this
 
+long pedalCount = 0;
 
 void setup()
 {
@@ -35,6 +38,7 @@ void setup()
     pinMode(speedoPin, INPUT);
     pinMode(resistoPin, INPUT);
     pinMode(heartPin, INPUT);
+    pinMode(resetPin, INPUT);
     Serial.begin(115200);
 }
 
@@ -52,6 +56,16 @@ void loop()
     float resisto = (float)analogRead(resistoPin) / 4096.0;
     float heart = (float)analogRead(heartPin) / 2048.0 - 1.0;
     float resistKnob = (float)analogRead(resistKnobPin) / 4096.0;
+    int resetButton = digitalRead(resetPin);
+
+    if(resetButton == 0) {
+        pedalCount = 0;
+    }
+
+    if(lastSpeedo > 0.7 && speedo < 0.3) {
+        pedalCount++;
+    }
+    lastSpeedo = speedo;
 
     ///////////////////////////////////////////////////////////////////////////
     // Heart filtering
@@ -112,7 +126,7 @@ void loop()
     ///////////////////////////////////////////////////////////////////////////
     // REPORTING
     ///////////////////////////////////////////////////////////////////////////
-    if(1) {  // raw heart signal diagnostics
+    if(0) {  // raw heart signal diagnostics
         if(now - lastReportMillis > 0) {
             lastReportMillis = now;
             Serial.println(
@@ -122,4 +136,12 @@ void loop()
                 String(10.0*speedo));
         }
     }
+
+    if(1) {
+        if(now - lastReportMillis > 1000) {
+            lastReportMillis = now;
+            Serial.println(pedalCount);
+        }
+    }
+
 }
