@@ -1,3 +1,11 @@
+#include <WiFi.h>
+#include <WiFiUdp.h>
+
+const char * networkName = "jaysplace2";
+const char * networkPswd = "deadbeef";
+
+WiFiUDP Udp;
+
 long scheduledNextTick;
 
 int resetPin = 0;
@@ -26,6 +34,25 @@ long lastReportMillis = 0;
 long loopDtMs = 5;//careful changing this - DSP filters below are tuned to this
 
 long pedalCount = 0;
+long hbCount = 0;
+
+void connectToWiFi(const char * ssid, const char * pwd)
+{
+    //connect to wifi
+    Serial.println("Connecting to WiFi network: " + String(ssid));
+    WiFi.begin(ssid, pwd);
+    while (WiFi.status() != WL_CONNECTED) {
+        delay(500);
+        Serial.print(".");
+    }
+
+    Serial.println();
+    Serial.println("WiFi connected!");
+    Serial.print("IP address: ");
+    Serial.println(WiFi.localIP());
+}
+
+
 
 void setup()
 {
@@ -40,6 +67,7 @@ void setup()
     pinMode(heartPin, INPUT);
     pinMode(resetPin, INPUT);
     Serial.begin(115200);
+    connectToWiFi(networkName, networkPswd);
 }
 
 float heart = 0.0;
@@ -60,6 +88,7 @@ void loop()
 
     if(resetButton == 0) {
         pedalCount = 0;
+        hbCount = 0;
     }
 
     if(lastSpeedo > 0.7 && speedo < 0.3) {
@@ -87,6 +116,9 @@ void loop()
     float heart_pulse_thresh = heart_rct_max * 0.5;
 
     float heart_pulse = heart_ds4 > heart_pulse_thresh ? 1.0 : 0.0;
+    if(heart_pulse > 0.5) {
+        hbCount++;
+    }
 
     //float heart_pulse_t
     targetResist = resistKnob;
@@ -140,7 +172,16 @@ void loop()
     if(1) {
         if(now - lastReportMillis > 1000) {
             lastReportMillis = now;
-            Serial.println(pedalCount);
+
+            String msg = String(pedalCount) + "," +
+                         String(hbCount) + "," +
+                         String(resisto);
+            Udp.beginPacket("10.1.10.255", 10245);
+            Udp.write((const uint8_t*)msg.c_str(), msg.length());
+            Udp.endPacket();
+
+            pedalCount = 0;
+            hbCount = 0;
         }
     }
 
