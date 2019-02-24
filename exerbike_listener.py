@@ -13,6 +13,7 @@ sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 server_address = ('', 10245)
 print('starting up on %s port %s' % server_address)
 sock.bind(server_address)
+sock.setblocking(0)
 
 fig, axs = plt.subplots(2, 1)
 
@@ -21,8 +22,14 @@ pedal_vals = []
 hb_cnt_cumsum = 0
 pedal_cnt_cumsum = 0
 
+log_file = f'logs/log_{time.strftime("%Y-%m-%d_%H%M%S")}.csv'
+log_fd = open(log_file, 'w')
+print("t,hb,pedal,resistance", file=log_fd)
 def animate(i):
-    data, address = sock.recvfrom(4096)
+    try:
+        data, address = sock.recvfrom(4096)
+    except socket.error as e:
+        return
     msg = data.decode('utf-8')
 
     parts = [v for v in msg.split(',')]
@@ -41,6 +48,8 @@ def animate(i):
 
     axs[1].clear()
     axs[1].plot(pedal_vals)
-    print(f"{hb_cnt_cumsum},{pedal_cnt_cumsum}")
+    print(f"{time.time()},{hb_cnt},{pedal_cnt},{resist_pct}", file=log_fd)
+    log_fd.flush()
+    print(f"{hb_cnt_cumsum},{pedal_cnt_cumsum},{resist_pct}")
 ani = animation.FuncAnimation(fig, animate, interval=100)
 plt.show()
