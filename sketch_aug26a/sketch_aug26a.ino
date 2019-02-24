@@ -1,12 +1,11 @@
 long scheduledNextTick;
 
-int ledPin = 5;
 int speedoPin = 36;
 int resistoPin = 39;
 int heartPin = 34;
 int motor1Pin = 23;
 int motor2Pin = 22;
-int blinkyPin = 21;
+int resistKnobPin = 35;
 
 #define HBUF_SZ 256
 float heartHist[HBUF_SZ];
@@ -30,10 +29,9 @@ void setup()
     scheduledNextTick = (long)millis() + loopDtMs;
     pinMode(motor1Pin, OUTPUT);
     pinMode(motor2Pin, OUTPUT);
-    pinMode(blinkyPin, OUTPUT);
+    pinMode(resistKnobPin, INPUT);
     digitalWrite(motor1Pin, LOW);
     digitalWrite(motor2Pin, LOW);
-    digitalWrite(blinkyPin, LOW);
     pinMode(speedoPin, INPUT);
     pinMode(resistoPin, INPUT);
     pinMode(heartPin, INPUT);
@@ -53,6 +51,7 @@ void loop()
     float speedo = (float)analogRead(speedoPin) / 4096.0;
     float resisto = (float)analogRead(resistoPin) / 4096.0;
     float heart = (float)analogRead(heartPin) / 2048.0 - 1.0;
+    float resistKnob = (float)analogRead(resistKnobPin) / 4096.0;
 
     ///////////////////////////////////////////////////////////////////////////
     // Heart filtering
@@ -76,28 +75,35 @@ void loop()
     float heart_pulse = heart_ds4 > heart_pulse_thresh ? 1.0 : 0.0;
 
     //float heart_pulse_t
-
-    ///////////////////////////////////////////////////////////////////////////
-    // BLINKY PIN (200Hz calibration)
-    ///////////////////////////////////////////////////////////////////////////
-    blinkyPinValue = ~blinkyPinValue;
-    digitalWrite(blinkyPin, blinkyPinValue);
+    targetResist = resistKnob;
 
     ///////////////////////////////////////////////////////////////////////////
     // RESISTANCE
     ///////////////////////////////////////////////////////////////////////////
     int resistoDir = 999;
     if(resisto < targetResist - targetResistTol) {
+        // Serial.println("Harder... "
+        //  + String(resistKnob) + ", "
+        //  + String(targetResist) + ", "
+        //  + String(resisto));
         digitalWrite(motor1Pin, HIGH);
         digitalWrite(motor2Pin, LOW);
         resistoDir = 1;
     }
     else if(resisto > targetResist + targetResistTol){
+        // Serial.println("Easier..."
+        //  + String(resistKnob) + ", "
+        //  + String(targetResist) + ", "
+        //  + String(resisto));
         digitalWrite(motor1Pin, LOW);
         digitalWrite(motor2Pin, HIGH);
         resistoDir = -1;
     }
     else {
+        // Serial.println("Hold..."
+        //  + String(resistKnob) + ", "
+        //  + String(targetResist) + ", "
+        //  + String(resisto));
         digitalWrite(motor1Pin, LOW);
         digitalWrite(motor2Pin, LOW);
         resistoDir = 0;
@@ -109,128 +115,11 @@ void loop()
     if(1) {  // raw heart signal diagnostics
         if(now - lastReportMillis > 0) {
             lastReportMillis = now;
-            Serial.print(10.0*heart);Serial.print(",");
-            Serial.print(10.0*heart_pulse);Serial.print(",");
-            Serial.print(10.0*resisto);Serial.print(",");
-            Serial.print(10.0*speedo);Serial.println();
+            Serial.println(
+                String(10.0*heart) + "," +
+                String(10.0*heart_pulse) + "," +
+                String(10.0*resisto) + "," +
+                String(10.0*speedo));
         }
     }
 }
-
-//#include <WiFi.h>
-//
-//// WiFi network name and password:
-//const char * networkName = "jaysplace2";
-//const char * networkPswd = "deadbeef";
-//
-//// Internet domain to request from:
-//const char * hostDomain = "google.com";
-//const int hostPort = 80;
-
-//const int BUTTON_PIN = 0;
-//const int LED_PIN = 5;
-
-//void setup()
-//{
-//  // Initilize hardware:
-//  Serial.begin(115200);
-//  //pinMode(BUTTON_PIN, INPUT);
-//  //pinMode(LED_PIN, OUTPUT);
-//
-//  // Connect to the WiFi network (see function below loop)
-//  //connectToWiFi(networkName, networkPswd);
-//
-//  //digitalWrite(LED_PIN, LOW); // LED off
-//  //Serial.print("Press button 0 to connect to ");
-//  //Serial.println(hostDomain);
-//}
-//
-//void loop()
-//{
-//  /*
-//  if (digitalRead(BUTTON_PIN) == LOW)
-//  { // Check if button has been pressed
-//    while (digitalRead(BUTTON_PIN) == LOW)
-//      ; // Wait for button to be released
-//
-//    digitalWrite(LED_PIN, HIGH); // Turn on LED
-//    requestURL(hostDomain, hostPort); // Connect to server
-//    digitalWrite(LED_PIN, LOW); // Turn off LED
-//  }
-//  */
-//  
-//}
-
-//void connectToWiFi(const char * ssid, const char * pwd)
-//{
-//  int ledState = 0;
-//
-//  printLine();
-//  Serial.println("Connecting to WiFi network: " + String(ssid));
-//
-//  WiFi.begin(ssid, pwd);
-//
-//  while (WiFi.status() != WL_CONNECTED) 
-//  {
-//    // Blink LED while we're connecting:
-//    digitalWrite(LED_PIN, ledState);
-//    ledState = (ledState + 1) % 2; // Flip ledState
-//    delay(500);
-//    Serial.print(".");
-//  }
-//
-//  Serial.println();
-//  Serial.println("WiFi connected!");
-//  Serial.print("IP address: ");
-//  Serial.println(WiFi.localIP());
-//}
-//
-//void requestURL(const char * host, uint8_t port)
-//{
-//  printLine();
-//  Serial.println("Connecting to domain: " + String(host));
-//
-//  // Use WiFiClient class to create TCP connections
-//  WiFiClient client;
-//  if (!client.connect(host, port))
-//  {
-//    Serial.println("connection failed");
-//    return;
-//  }
-//  Serial.println("Connected!");
-//  printLine();
-//
-//  // This will send the request to the server
-//  client.print((String)"GET / HTTP/1.1\r\n" +
-//               "Host: " + String(host) + "\r\n" +
-//               "Connection: close\r\n\r\n");
-//  unsigned long timeout = millis();
-//  while (client.available() == 0) 
-//  {
-//    if (millis() - timeout > 5000) 
-//    {
-//      Serial.println(">>> Client Timeout !");
-//      client.stop();
-//      return;
-//    }
-//  }
-//
-//  // Read all the lines of the reply from server and print them to Serial
-//  while (client.available()) 
-//  {
-//    String line = client.readStringUntil('\r');
-//    Serial.print(line);
-//  }
-//
-//  Serial.println();
-//  Serial.println("closing connection");
-//  client.stop();
-//}
-//
-//void printLine()
-//{
-//  Serial.println();
-//  for (int i=0; i<30; i++)
-//    Serial.print("-");
-//  Serial.println();
-//}
