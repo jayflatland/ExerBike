@@ -38,6 +38,7 @@ pace = pd.DataFrame({
     "t": np.arange(0, 1200.0, 1.0),
 })
 pace['pedal'] = 1000.0 / 1200.0
+pace['resist_pct'] = 0.3
 
 def animate(i):
     try:
@@ -73,6 +74,8 @@ def animate(i):
     axs[0][0].clear()
     axs[0][0].set_title(f"Resist: {resist_pct}")
     axs[0][0].plot(df.t, df.resist_pct)
+    axs[0][0].plot(pace.t, pace.resist_pct)
+    axs[0][0].plot(df_pace.t, df_pace.resistance)
 
     axs[0][1].clear()
     axs[0][1].set_title(f"Pedal Count: {df.pedal.sum()}")
