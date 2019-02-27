@@ -71,6 +71,10 @@ void setup()
 }
 
 float heart = 0.0;
+long last_hb_millis = 0;
+float hb_bpm = 0.0;
+float last_heart_pulse = 0.0;
+
 void loop()
 {
     long now = (long)millis();
@@ -116,9 +120,15 @@ void loop()
     float heart_pulse_thresh = heart_rct_max * 0.5;
 
     float heart_pulse = heart_ds4 > heart_pulse_thresh ? 1.0 : 0.0;
-    if(heart_pulse > 0.5) {
+    if(heart_pulse > 0.6 && last_heart_pulse < 0.4) {
         hbCount++;
+        hb_bpm = (float)(now - last_hb_millis) * 0.001 * 60.0;
+        if(hb_bpm < 0.0) {
+            hb_bpm = 0.0;
+        }
+        last_hb_millis = now;
     }
+    last_heart_pulse = heart_pulse;
 
     //float heart_pulse_t
     targetResist = resistKnob;
@@ -162,10 +172,9 @@ void loop()
         if(now - lastReportMillis > 0) {
             lastReportMillis = now;
             Serial.println(
-                String(10.0*heart) + "," +
-                String(10.0*heart_pulse) + "," +
-                String(10.0*resisto) + "," +
-                String(10.0*speedo));
+                String(heart) + "," +
+                String(heart_pulse) + "," +
+                String(hb_bpm));
         }
     }
 
@@ -175,7 +184,8 @@ void loop()
 
             String msg = String(pedalCount) + "," +
                          String(hbCount) + "," +
-                         String(resisto);
+                         String(resisto) + "," +
+                         String(hb_bpm);
             Udp.beginPacket("10.1.10.255", 10245);
             Udp.write((const uint8_t*)msg.c_str(), msg.length());
             Udp.endPacket();
