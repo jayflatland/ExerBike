@@ -120,11 +120,11 @@ void loop()
     float heart_pulse_thresh = heart_rct_max * 0.5;
 
     float heart_pulse = heart_ds4 > heart_pulse_thresh ? 1.0 : 0.0;
+    float since_last_hb = (float)(now - last_hb_millis) * 0.001;
     if(heart_pulse > 0.6 && last_heart_pulse < 0.4) {
-        hbCount++;
-        hb_bpm = (float)(now - last_hb_millis) * 0.001 * 60.0;
-        if(hb_bpm < 0.0) {
-            hb_bpm = 0.0;
+        if(since_last_hb > 0.20) {
+            hbCount++;
+            hb_bpm = 60.0 / since_last_hb;
         }
         last_hb_millis = now;
     }
@@ -172,13 +172,15 @@ void loop()
         if(now - lastReportMillis > 0) {
             lastReportMillis = now;
             Serial.println(
-                String(heart) + "," +
-                String(heart_pulse) + "," +
-                String(hb_bpm));
+                String(10.0 * heart) + "," +
+                String(10.0 * heart_pulse) + "," +
+                String(10.0 * since_last_hb) + "," + 
+                String(0.1 * hb_bpm)
+            );
         }
     }
 
-    if(1) {
+    else {
         if(now - lastReportMillis > 1000) {
             lastReportMillis = now;
 
