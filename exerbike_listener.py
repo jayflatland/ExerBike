@@ -21,7 +21,7 @@ sock.setblocking(0)
 
 fig, axs = plt.subplots(2, 2)
 
-df_pace = pd.read_csv("logs/log_2019-02-25_195635.csv")
+df_pace = pd.read_csv("logs/log_2019-02-26_200831.csv")
 df_pace['t'] = df_pace['t'] - df_pace['t'].min()
 
 t_vals = []
