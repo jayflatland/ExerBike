@@ -21,8 +21,17 @@ sock.setblocking(0)
 
 fig, axs = plt.subplots(2, 2)
 
-last_pace = pd.read_csv("logs/log_2019-02-27_200115.csv")
-last_pace['t'] = last_pace['t'] - last_pace['t'].min()
+pace_log_filenames = [
+    #"logs/log_2019-02-27_200115.csv",  # jay
+    "logs/log_2019-02-27_202229.csv",  # caleb
+    #"logs/log_2019-02-28_200443.csv",  # jay
+]
+
+last_paces = []
+for fname in pace_log_filenames:
+    last_pace = pd.read_csv(fname)
+    last_pace['t'] = last_pace['t'] - last_pace['t'].min()
+    last_paces.append(last_pace)
 
 t_vals = []
 hb_vals = []
@@ -72,33 +81,40 @@ def animate(i):
     })
     df['t'] = df['t'] - df['t'].min()
 
-    dfs = [df, ref_pace, last_pace]
+    dfs = [
+        (ref_pace,  1.0, "blue"),
+        (df,        1.0, "red"),
+    ]
+
+    for d in last_paces:
+        dfs.append((d, 0.2, "black"))
+
     ax = axs[0][0]
     ax.clear()
     ax.set_title(f"Resist: {resist_pct}")
-    for d in dfs:
-        ax.plot(d.t, d.resist_pct)
+    for d, alph, clr in dfs:
+        ax.plot(d.t, d.resist_pct, alpha=alph, c=clr)
 
     ax = axs[0][1]
     ax.clear()
     ax.set_title(f"Pedal Count: {df.pedal_cnt.sum()}")
-    for d in dfs:
+    for d, alph, clr in dfs:
         d = d[d.t > df.t.max() - 120.0]
         d = d[d.t < df.t.max()]
-        ax.plot(d.t, d.pedal_cnt.cumsum())
+        ax.plot(d.t, d.pedal_cnt.cumsum(), alpha=alph, c=clr)
 
     ax = axs[1][0]
     ax.clear()
     ax.set_title(f"Total Time: {df.t.max() / 60.0:.1f} minutes")
-    for d in dfs:
+    for d, alph, clr in dfs:
         d = d[d.t > df.t.min()]
-        ax.plot(d.t, d.pedal_cnt.cumsum())
+        ax.plot(d.t, d.pedal_cnt.cumsum(), alpha=alph, c=clr)
 
     ax = axs[1][1]
     ax.clear()
     ax.set_title(f"Heart: {hb_bpm} bpm")
-    for d in dfs:
-        ax.plot(d.t, d.hb_bpm)
+    for d, alph, clr in dfs:
+        ax.plot(d.t, d.hb_bpm, alpha=alph, c=clr)
     ax.set_ylim(30.0, 200.0)
 
     print(f"{t},{hb_cnt},{pedal_cnt},{resist_pct},{hb_bpm}", file=log_fd)
