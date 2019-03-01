@@ -21,8 +21,8 @@ sock.setblocking(0)
 
 fig, axs = plt.subplots(2, 2)
 
-df_pace = pd.read_csv("logs/log_2019-02-26_200831.csv")
-df_pace['t'] = df_pace['t'] - df_pace['t'].min()
+last_pace = pd.read_csv("logs/log_2019-02-27_200115.csv")
+last_pace['t'] = last_pace['t'] - last_pace['t'].min()
 
 t_vals = []
 hb_vals = []
@@ -32,13 +32,14 @@ hb_bpm_vals = []
 
 log_file = f'logs/log_{time.strftime("%Y-%m-%d_%H%M%S")}.csv'
 log_fd = open(log_file, 'w')
-print("t,hb,pedal,resistance,hb_bpm", file=log_fd)
+print("t,hb_cnt,pedal_cnt,resist_pct,hb_bpm", file=log_fd)
 
-pace = pd.DataFrame({
+ref_pace = pd.DataFrame({
     "t": np.arange(0, 1200.0, 1.0),
 })
-pace['pedal'] = 1000.0 / 1200.0
-pace['resist_pct'] = 0.3
+ref_pace['pedal_cnt'] = 1000.0 / 1200.0
+ref_pace['resist_pct'] = 0.3
+ref_pace['hb_bpm'] = 125.0
 
 def animate(i):
     try:
@@ -64,37 +65,41 @@ def animate(i):
 
     df = pd.DataFrame({
         "t": t_vals,
-        "hb": hb_vals,
-        "pedal": pedal_vals,
+        "hb_cnt": hb_vals,
+        "pedal_cnt": pedal_vals,
         "resist_pct": resist_pct_vals,
         "hb_bpm": hb_bpm_vals,
     })
     df['t'] = df['t'] - df['t'].min()
 
-    axs[0][0].clear()
-    axs[0][0].set_title(f"Resist: {resist_pct}")
-    axs[0][0].plot(df.t, df.resist_pct)
-    axs[0][0].plot(pace.t, pace.resist_pct)
-    axs[0][0].plot(df_pace.t, df_pace.resistance)
+    dfs = [df, ref_pace, last_pace]
+    ax = axs[0][0]
+    ax.clear()
+    ax.set_title(f"Resist: {resist_pct}")
+    for d in dfs:
+        ax.plot(d.t, d.resist_pct)
 
-    axs[0][1].clear()
-    axs[0][1].set_title(f"Pedal Count: {df.pedal.sum()}")
-    axs[0][1].plot(df.t, df.pedal.cumsum())
-    pace2 = pace[(pace.t > df.t.min()) & (pace.t < df.t.max())]
-    axs[0][1].plot(pace2.t, pace2.pedal.cumsum())
-    pace2 = df_pace[(df_pace.t > df.t.min()) & (df_pace.t < df.t.max())]
-    axs[0][1].plot(pace2.t, pace2.pedal.cumsum())
+    ax = axs[0][1]
+    ax.clear()
+    ax.set_title(f"Pedal Count: {df.pedal_cnt.sum()}")
+    for d in dfs:
+        d = d[d.t > df.t.max() - 120.0]
+        d = d[d.t < df.t.max()]
+        ax.plot(d.t, d.pedal_cnt.cumsum())
 
-    axs[1][0].clear()
-    axs[1][0].set_title(f"Total Time: {df.t.max() / 60.0:.1f} minutes")
-    axs[1][0].plot(df.t, df.pedal.cumsum())
-    axs[1][0].plot(pace.t, pace.pedal.cumsum())
-    axs[1][0].plot(df_pace.t, df_pace.pedal.cumsum())
+    ax = axs[1][0]
+    ax.clear()
+    ax.set_title(f"Total Time: {df.t.max() / 60.0:.1f} minutes")
+    for d in dfs:
+        d = d[d.t > df.t.min()]
+        ax.plot(d.t, d.pedal_cnt.cumsum())
 
-    axs[1][1].clear()
-    axs[1][1].set_title(f"Heart: {hb_bpm} bpm")
-    axs[1][1].plot(df.t, df.hb_bpm)
-    axs[1][1].set_ylim(30.0, 200.0)
+    ax = axs[1][1]
+    ax.clear()
+    ax.set_title(f"Heart: {hb_bpm} bpm")
+    for d in dfs:
+        ax.plot(d.t, d.hb_bpm)
+    ax.set_ylim(30.0, 200.0)
 
     print(f"{t},{hb_cnt},{pedal_cnt},{resist_pct},{hb_bpm}", file=log_fd)
     log_fd.flush()
