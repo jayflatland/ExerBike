@@ -24,7 +24,8 @@ fig, axs = plt.subplots(2, 2)
 pace_log_filenames = [
     #"logs/log_2019-02-27_200115.csv",  # jay
     #"logs/log_2019-02-28_200443.csv",  # jay
-    "logs/log_2019-02-27_202229.csv",  # caleb
+    #"logs/log_2019-03-01_202539.csv",  # jay
+    #"logs/log_2019-02-27_202229.csv",  # caleb
     "logs/log_2019-02-28_202446.csv",  # caleb
 ]
 
@@ -100,9 +101,11 @@ def animate(i):
     ax.clear()
     ax.set_title(f"Pedal Count: {df.pedal_cnt.sum()}")
     for d, alph, clr in dfs:
+        d = d.copy()
+        d['pedal_cnt'] = d['pedal_cnt'].cumsum()
         d = d[d.t > df.t.max() - 120.0]
         d = d[d.t < df.t.max()]
-        ax.plot(d.t, d.pedal_cnt.cumsum(), alpha=alph, c=clr)
+        ax.plot(d.t, d.pedal_cnt, alpha=alph, c=clr)
 
     ax = axs[1][0]
     ax.clear()

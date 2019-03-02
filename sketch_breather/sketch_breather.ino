@@ -11,5 +11,5 @@ void loop()
     digitalWrite(motor1Pin, HIGH);
     delayMicroseconds(10);
     digitalWrite(motor1Pin, LOW);
-    delay(1000);
+    delay(100);
 }
