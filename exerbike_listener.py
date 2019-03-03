@@ -40,6 +40,7 @@ hb_vals = []
 pedal_vals = []
 resist_pct_vals = []
 hb_bpm_vals = []
+tgt_resist_pct_vals = []
 
 log_file = f'logs/log_{time.strftime("%Y-%m-%d_%H%M%S")}.csv'
 log_fd = open(log_file, 'w')
@@ -67,12 +68,14 @@ def animate(i):
     hb_cnt = int(parts[1])
     resist_pct = float(parts[2])
     hb_bpm = float(parts[3])
+    tgt_resist_pct = float(parts[4])
 
     t_vals.append(t)
     hb_vals.append(hb_cnt)
     pedal_vals.append(pedal_cnt)
     resist_pct_vals.append(resist_pct)
     hb_bpm_vals.append(hb_bpm)
+    tgt_resist_pct_vals.append(tgt_resist_pct)
 
     df = pd.DataFrame({
         "t": t_vals,
@@ -80,6 +83,7 @@ def animate(i):
         "pedal_cnt": pedal_vals,
         "resist_pct": resist_pct_vals,
         "hb_bpm": hb_bpm_vals,
+        "tgt_resist_pct": tgt_resist_pct_vals,
     })
     df['t'] = df['t'] - df['t'].min()
 
@@ -93,9 +97,10 @@ def animate(i):
 
     ax = axs[0][0]
     ax.clear()
-    ax.set_title(f"Resist: {resist_pct}")
+    ax.set_title(f"Resist: {resist_pct}  Target: {tgt_resist_pct}")
     for d, alph, clr in dfs:
         ax.plot(d.t, d.resist_pct, alpha=alph, c=clr)
+    ax.plot(df.t, df.tgt_resist_pct, alpha=1.0, c="lightblue")
 
     ax = axs[0][1]
     ax.clear()

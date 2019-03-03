@@ -187,7 +187,8 @@ void loop()
             String msg = String(pedalCount) + "," +
                          String(hbCount) + "," +
                          String(resisto) + "," +
-                         String(hb_bpm);
+                         String(hb_bpm) + "," + 
+                         String(targetResist);
             Udp.beginPacket("10.1.10.255", 10245);
             Udp.write((const uint8_t*)msg.c_str(), msg.length());
             Udp.endPacket();
