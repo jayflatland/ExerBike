@@ -26,7 +26,8 @@ pace_log_filenames = [
     #"logs/log_2019-02-28_200443.csv",  # jay
     #"logs/log_2019-03-01_202539.csv",  # jay
     #"logs/log_2019-03-02_102540.csv",  # jay
-    "logs/log_2019-03-03_195627.csv",  # jay
+    #"logs/log_2019-03-03_195627.csv",  # jay
+    "logs/log_2019-03-04_195042.csv",  # jay
     #"logs/log_2019-02-27_202229.csv",  # caleb
     #"logs/log_2019-02-28_202446.csv",  # caleb
 ]
