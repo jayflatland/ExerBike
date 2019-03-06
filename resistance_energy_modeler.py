@@ -28,14 +28,14 @@ The resistance torque is proportional to and in opposition of speed
 # lbf2Nm = pounds2N * ft2m
 Nm2lbf = 0.737562
 
-weight = 44.4  # N, 10.0 lb
+weight = 26.6  # N, 6.0 lb
 lever_length = 0.22  # m, 9 inches
 
 # 15 at 100% (takes about 6s)
 # 15 at 100% (takes about 6s)
-reist_ratio = 1.0
-resist_torque_per_vel = 5.0 + 10.0 * reist_ratio
-angular_mass = 2.0
+resist_ratio = 1.0
+resist_torque_per_vel = 1.8 + 9.0 * resist_ratio
+angular_mass = 1.0
 
 # initial conditions
 ang_vel = 0.0
@@ -45,9 +45,10 @@ t = 0.0
 torque = 0.0
 
 rows = []
-for i in range(20000):
+for i in range(7000):
     w_torque = math.cos(a) * weight * lever_length
     r_torque = -ang_vel * resist_torque_per_vel
+    power = abs(r_torque * ang_vel) * lever_length
     torque = w_torque + r_torque
     ang_vel += torque / angular_mass * dt
     a += ang_vel * dt
@@ -59,6 +60,7 @@ for i in range(20000):
         "w_torque": w_torque,
         "r_torque": r_torque,
         "torque": torque,
+        "power": power,
         "ang_vel": ang_vel,
     })
 
@@ -70,15 +72,24 @@ plt.plot(df.t, df.w_torque * Nm2lbf)
 plt.plot(df.t, df.r_torque * Nm2lbf)
 plt.plot(df.t, df.torque * Nm2lbf)
 plt.legend()
+plt.grid()
 plt.show()
 
 plt.figure(figsize=(18, 5))
 plt.title("Ang Vel (deg/s)")
 plt.plot(df.t, df.ang_vel * 180.0 / math.pi)
+plt.grid()
+plt.show()
+
+plt.figure(figsize=(18, 5))
+plt.title("Power (W)")
+plt.plot(df.t, df.power)
+plt.grid()
 plt.show()
 
 plt.figure(figsize=(18, 5))
 plt.title("Angle (deg)")
 plt.plot(df.t, df.a * 180.0 / math.pi)
+plt.grid()
 plt.show()
 
