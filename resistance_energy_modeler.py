@@ -65,8 +65,8 @@ for i in range(7000):
     })
 
 df = pd.DataFrame(rows)
-
-plt.figure(figsize=(18, 5))
+figsize=(12, 3)
+plt.figure(figsize=figsize)
 plt.title("Torque (Nm)")
 plt.plot(df.t, df.w_torque * Nm2lbf)
 plt.plot(df.t, df.r_torque * Nm2lbf)
@@ -75,19 +75,19 @@ plt.legend()
 plt.grid()
 plt.show()
 
-plt.figure(figsize=(18, 5))
+plt.figure(figsize=figsize)
 plt.title("Ang Vel (deg/s)")
 plt.plot(df.t, df.ang_vel * 180.0 / math.pi)
 plt.grid()
 plt.show()
 
-plt.figure(figsize=(18, 5))
+plt.figure(figsize=figsize)
 plt.title("Power (W)")
 plt.plot(df.t, df.power)
 plt.grid()
 plt.show()
 
-plt.figure(figsize=(18, 5))
+plt.figure(figsize=figsize)
 plt.title("Angle (deg)")
 plt.plot(df.t, df.a * 180.0 / math.pi)
 plt.grid()
