@@ -31,11 +31,9 @@ Nm2lbf = 0.737562
 weight = 26.6  # N, 6.0 lb
 lever_length = 0.22  # m, 9 inches
 
-# 15 at 100% (takes about 6s)
-# 15 at 100% (takes about 6s)
 resist_ratio = 1.0
-resist_torque_per_vel = 1.8 + 9.0 * resist_ratio
-angular_mass = 1.0
+resist_torque_per_vel = 2.0#1.8 + 9.0 * resist_ratio
+angular_mass = 1.5
 
 # initial conditions
 ang_vel = 0.0
@@ -76,8 +74,8 @@ plt.grid()
 plt.show()
 
 plt.figure(figsize=figsize)
-plt.title("Ang Vel (deg/s)")
-plt.plot(df.t, df.ang_vel * 180.0 / math.pi)
+plt.title("Ang Vel (rad/s)")
+plt.plot(df.t, df.ang_vel)
 plt.grid()
 plt.show()
 
