@@ -31,7 +31,8 @@ pace_log_filenames = [
     #"logs/log_2019-03-02_102540.csv",  # jay
     #"logs/log_2019-03-03_195627.csv",  # jay
     #"logs/log_2019-03-04_195042.csv",  # jay
-    "logs/log_2019-03-05_193429.csv",  # jay
+    #"logs/log_2019-03-05_193429.csv",  # jay
+    "logs/log_2019-03-06_202052.csv",  # jay
     #"logs/log_2019-02-27_202229.csv",  # caleb
     #"logs/log_2019-02-28_202446.csv",  # caleb
 ]
@@ -104,7 +105,8 @@ def animate(i):
 
     for d, alph, clr in dfs:
         d['pedal'] = d['pedal_cnt'].cumsum()
-        d['pedal_rpm'] = d['pedal'] - d['pedal'].rolling(60, min_periods=1).min()
+        wndsz = 10
+        d['pedal_rpm'] = (d['pedal'] - d['pedal'].rolling(wndsz, min_periods=1).min()) * 60.0 / wndsz
         d['pedal_rate'] = d['pedal_rpm'] / 60.0 * math.pi * 2.0
         d['resist_torque_per_vel'] = 1.8 + 9.0 * d['resist_pct']
         d['power'] = d['pedal_rate'] * d['pedal_rate'] * d['resist_torque_per_vel']
