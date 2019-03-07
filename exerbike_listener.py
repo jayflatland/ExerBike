@@ -1,3 +1,4 @@
+import math
 import socket
 import sys
 
@@ -19,7 +20,9 @@ print('starting up on %s port %s' % server_address)
 sock.bind(server_address)
 sock.setblocking(0)
 
-fig, axs = plt.subplots(2, 2)
+gme = 0.2
+
+fig, axs = plt.subplots(3, 2)
 
 pace_log_filenames = [
     #"logs/log_2019-02-27_200115.csv",  # jay
@@ -27,7 +30,8 @@ pace_log_filenames = [
     #"logs/log_2019-03-01_202539.csv",  # jay
     #"logs/log_2019-03-02_102540.csv",  # jay
     #"logs/log_2019-03-03_195627.csv",  # jay
-    "logs/log_2019-03-04_195042.csv",  # jay
+    #"logs/log_2019-03-04_195042.csv",  # jay
+    "logs/log_2019-03-05_193429.csv",  # jay
     #"logs/log_2019-02-27_202229.csv",  # caleb
     #"logs/log_2019-02-28_202446.csv",  # caleb
 ]
@@ -98,6 +102,14 @@ def animate(i):
     for d in last_paces:
         dfs.append((d, 0.2, "black"))
 
+    for d, alph, clr in dfs:
+        d['pedal'] = d['pedal_cnt'].cumsum()
+        d['pedal_rpm'] = d['pedal'] - d['pedal'].rolling(60, min_periods=1).min()
+        d['pedal_rate'] = d['pedal_rpm'] / 60.0 * math.pi * 2.0
+        d['resist_torque_per_vel'] = 1.8 + 9.0 * d['resist_pct']
+        d['power'] = d['pedal_rate'] * d['pedal_rate'] * d['resist_torque_per_vel']
+        d['work'] = (d['power'] * (d['t'] - d['t'].shift(1))).cumsum()
+
     ax = axs[0][0]
     ax.clear()
     ax.set_title(f"Resist: {resist_pct}  Target: {tgt_resist_pct}")
@@ -129,7 +141,20 @@ def animate(i):
         ax.plot(d.t, d.hb_bpm, alpha=alph, c=clr)
     ax.set_ylim(30.0, 200.0)
 
+    ax = axs[2][0]
+    ax.clear()
+    ax.set_title(f"Power: {df.power.values[-1]:.0f} W")
+    for d, alph, clr in dfs:
+        ax.plot(d.t, d.power, alpha=alph, c=clr)
+
+    ax = axs[2][1]
+    ax.clear()
+    ax.set_title(f"Work: {df.work.values[-1] / 4184.0 / gme:.0f} kcal")
+    for d, alph, clr in dfs:
+        ax.plot(d.t, d.work / 4184.0 / gme, alpha=alph, c=clr)
+
     print(f"{t},{hb_cnt},{pedal_cnt},{resist_pct},{hb_bpm}", file=log_fd)
     log_fd.flush()
 ani = animation.FuncAnimation(fig, animate, interval=100)
+plt.tight_layout()
 plt.show()
