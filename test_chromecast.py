@@ -32,7 +32,7 @@ cast.wait()
 print("Playing...")
 mc = cast.media_controller
 #mc.play_media('http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4', 'video/mp4')
-mc.play_media('http://10.1.10.11:8000/smiley_jay.jpg', 'image/jpg')
+mc.play_media('http://10.1.10.11:8000/live_update.png', 'image/png', stream_type="LIVE")
 mc.block_until_active()
 
 # mc.pause()

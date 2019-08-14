@@ -24,8 +24,6 @@ sock.setblocking(0)
 
 gme = 0.2
 
-fig, axs = plt.subplots(3, 2)
-
 pace_log_filenames = [
     #"logs/log_2019-02-27_200115.csv",  # jay
     #"logs/log_2019-02-28_200443.csv",  # jay
@@ -64,13 +62,14 @@ ref_pace['pedal_cnt'] = 1000.0 / 1200.0
 ref_pace['resist_pct'] = 0.3
 ref_pace['hb_bpm'] = 125.0
 
-def animate(i):
+while True:
     try:
         data, address = sock.recvfrom(4096)
     except socket.error as e:
-        return
+        time.sleep(0.1)
+        continue
     msg = data.decode('utf-8')
-    #print(msg)
+    print(msg)
 
     parts = [v for v in msg.split(',')]
 
@@ -116,6 +115,8 @@ def animate(i):
         d['work'] = (d['power'] * (d['t'] - d['t'].shift(1))).cumsum()
 
 
+    fig, axs = plt.subplots(3, 2)
+
     ax = axs[0][0]
     ax.clear()
     ax.set_title(f"Resist: {resist_pct}  Target: {tgt_resist_pct}")
@@ -159,8 +160,10 @@ def animate(i):
     for d, alph, clr in dfs:
         ax.plot(d.t, d.work / 4184.0 / gme, alpha=alph, c=clr)
 
+    #ani = animation.FuncAnimation(fig, animate, interval=100)
+    plt.tight_layout()
+    #plt.show()
+    plt.savefig('live_update.png')
+
     print(f"{t},{hb_cnt},{pedal_cnt},{resist_pct},{hb_bpm}", file=log_fd)
     log_fd.flush()
-ani = animation.FuncAnimation(fig, animate, interval=100)
-plt.tight_layout()
-plt.show()
