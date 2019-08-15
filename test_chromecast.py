@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import random
+import os
 import time
 import pychromecast
 
@@ -8,36 +10,36 @@ import time
 
 import http.server
 import socketserver
+import random
+
+
 
 def thread_function():
     PORT = 8000
-    Handler = http.server.SimpleHTTPRequestHandler
     socketserver.TCPServer.allow_reuse_address = True
-    with socketserver.TCPServer(("", PORT), Handler) as httpd:
+    with socketserver.TCPServer(("", PORT), http.server.SimpleHTTPRequestHandler) as httpd:
         # httpd.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         print("serving at port", PORT)
         httpd.serve_forever()
 
-x = threading.Thread(target=thread_function)
-x.start()
+if 0:
+    thread_function()
+else:
+    x = threading.Thread(target=thread_function)
+    x.start()
 
-print("Finding chromecasts...")
-chromecasts = pychromecast.get_chromecasts()
+    print("Finding chromecasts...")
+    chromecasts = pychromecast.get_chromecasts()
 
-cast = next(cc for cc in chromecasts if cc.device.friendly_name == "Basement TV 2")
+    cast = next(cc for cc in chromecasts if cc.device.friendly_name == "Basement TV 2")
 
-print("Connecting...")
-cast.wait()
+    print("Connecting...")
+    cast.wait()
 
-print("Playing...")
-mc = cast.media_controller
-#mc.play_media('http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4', 'video/mp4')
-mc.play_media('http://10.1.10.11:8000/live_update.png', 'image/png', stream_type="LIVE")
-mc.block_until_active()
-
-# mc.pause()
-# time.sleep(5)
-#mc.play()
-
-while True:
-    time.sleep(10.0)
+    print("Playing...")
+    mc = cast.media_controller
+    
+    while True:
+        mc.play_media(f'http://10.1.10.11:8000/live_update.png?stupid={random.random()}', 'image/png', stream_type="LIVE")
+        mc.block_until_active()
+        time.sleep(1.0)
