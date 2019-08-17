@@ -24,7 +24,18 @@ sock.setblocking(0)
 
 gme = 0.2
 
-fig, axs = plt.subplots(3, 2)
+font = {'family' : 'normal',
+        'weight' : 'bold',
+        'size'   : 40}
+
+import matplotlib
+
+plt.style.use('jay1')
+
+
+matplotlib.rc('font', **font)
+
+fig, axs = plt.subplots(3, 2, figsize=(42, 25))
 
 pace_log_filenames = [
     #"logs/log_2019-02-27_200115.csv",  # jay
