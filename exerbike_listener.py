@@ -35,7 +35,7 @@ plt.style.use('jay1')
 
 matplotlib.rc('font', **font)
 
-fig, axs = plt.subplots(3, 2, figsize=(42, 25))
+fig, axs = plt.subplots(3, 2, figsize=(35, 15))
 
 pace_log_filenames = [
     #"logs/log_2019-02-27_200115.csv",  # jay
