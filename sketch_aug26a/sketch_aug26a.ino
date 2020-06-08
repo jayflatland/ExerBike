@@ -168,14 +168,15 @@ void loop()
     ///////////////////////////////////////////////////////////////////////////
     // REPORTING
     ///////////////////////////////////////////////////////////////////////////
-    if(0) {  // raw heart signal diagnostics
+    if(1) {  // raw heart signal diagnostics
         if(now - lastReportMillis > 0) {
             lastReportMillis = now;
             Serial.println(
+                //String(10.0 * heart)
                 String(10.0 * heart) + "," +
-                String(10.0 * heart_pulse) + "," +
-                String(10.0 * since_last_hb) + "," + 
-                String(0.1 * hb_bpm)
+                String(10.0 * heart_pulse)
+                // String(10.0 * since_last_hb) + "," + 
+                // String(0.1 * hb_bpm)
             );
         }
     }
