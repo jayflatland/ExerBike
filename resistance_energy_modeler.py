@@ -31,8 +31,8 @@ Nm2lbf = 0.737562
 weight = 26.6  # N, 6.0 lb
 lever_length = 0.22  # m, 9 inches
 
-resist_ratio = 1.0
-resist_torque_per_vel = 2.0#1.8 + 9.0 * resist_ratio
+resist_ratio = 0.1
+resist_torque_per_vel = 1.8 + 9.0 * resist_ratio  # 5.2 for pace 200kcal
 angular_mass = 1.5
 
 # initial conditions

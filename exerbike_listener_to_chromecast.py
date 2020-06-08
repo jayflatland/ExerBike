@@ -24,19 +24,6 @@ sock.setblocking(0)
 
 gme = 0.2
 
-font = {'family' : 'normal',
-        'weight' : 'bold',
-        'size'   : 40}
-
-import matplotlib
-
-plt.style.use('jay1')
-
-
-matplotlib.rc('font', **font)
-
-fig, axs = plt.subplots(3, 2, figsize=(35, 15))
-
 pace_log_filenames = [
     #"logs/log_2019-02-27_200115.csv",  # jay
     #"logs/log_2019-02-28_200443.csv",  # jay
@@ -47,7 +34,6 @@ pace_log_filenames = [
     #"logs/log_2019-03-05_193429.csv",  # jay
     #"logs/log_2019-03-06_202052.csv",  # jay
     "logs/log_2019-03-07_202639.csv",  # jay
-    "logs/log_2019-08-20_095304.csv",  # jay
     #"logs/log_2019-02-27_202229.csv",  # caleb
     #"logs/log_2019-02-28_202446.csv",  # caleb
 ]
@@ -76,13 +62,14 @@ ref_pace['pedal_cnt'] = 1000.0 / 1200.0
 ref_pace['resist_pct'] = 0.3
 ref_pace['hb_bpm'] = 125.0
 
-def animate(i):
+while True:
     try:
         data, address = sock.recvfrom(4096)
     except socket.error as e:
-        return
+        time.sleep(0.1)
+        continue
     msg = data.decode('utf-8')
-    #print(msg)
+    print(msg)
 
     parts = [v for v in msg.split(',')]
 
@@ -128,6 +115,8 @@ def animate(i):
         d['work'] = (d['power'] * (d['t'] - d['t'].shift(1))).cumsum()
 
 
+    fig, axs = plt.subplots(3, 2)
+
     ax = axs[0][0]
     ax.clear()
     ax.set_title(f"Resist: {resist_pct}  Target: {tgt_resist_pct}")
@@ -171,8 +160,10 @@ def animate(i):
     for d, alph, clr in dfs:
         ax.plot(d.t, d.work / 4184.0 / gme, alpha=alph, c=clr)
 
+    #ani = animation.FuncAnimation(fig, animate, interval=100)
+    plt.tight_layout()
+    #plt.show()
+    plt.savefig('live_update.png')
+
     print(f"{t},{hb_cnt},{pedal_cnt},{resist_pct},{hb_bpm}", file=log_fd)
     log_fd.flush()
-ani = animation.FuncAnimation(fig, animate, interval=100)
-plt.tight_layout()
-plt.show()
