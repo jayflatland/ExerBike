@@ -29,6 +29,15 @@ df['heart_bpm'] = np.where(np.abs(df['heart_bpm_delta']) < 10, df['heart_bpm'], 
 df['heart_bpm'] = df['heart_bpm'].ffill()
 #df = df[4000:5000]
 
+b = df['heart_ds4'] > df['heart_pulse_thresh']
+df['heartbeat_label'] = ~b & b.shift(1)
+df['heartbeat_label'][:4600] = False
+df['heartbeat_label'][12800:] = False
+df['heartbeat_label'][5400:5500] = False
+
+df[['heart', 'heartbeat_label']].to_csv("log_20200607_1__jay__labeled.csv")
+
+# %%
 # df['speedo_pulse_t'] = np.where((df['speedo'] > 0.5) & (df['speedo'].shift(1) < 0.5), df.t, np.nan)
 # #df['speedo_pulse_t'] = np.where((df['speedo'] > 0.5) & (df['speedo'].shift(1) < 0.5), 1.0, 0.0)
 # df['speedo_pulse_t'] = df['speedo_pulse_t'].ffill()
@@ -42,7 +51,9 @@ if r == 1 and c == 1: axs = [axs]
 elif r == 1 or c == 1:  axs = list(axs)
 else: axs = [axs[i, j] for j in range(c) for i in range(r)]  # flatten
 
+d = df[df['heartbeat_label']]
 plt.sca(axs.pop(0))
+plt.scatter(d.index, d['heart'], c='red')
 plt.plot(df['heart'])
 plt.grid()
 plt.legend(loc=2)
@@ -83,3 +94,14 @@ plt.show()
 # plt.grid()
 # plt.legend()
 # plt.show()
+
+# %%
+if 0:
+    pass
+    # %%
+    
+    df = df_.copy()
+    for i in range(500):
+        print(i)
+        c = f'l_{i}'
+        df[c] = df['heart'].shift(i)
