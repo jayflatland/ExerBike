@@ -124,6 +124,7 @@ void loop()
     //if idle for 10 minutes, restart
     if(timeForThisPedal > 60.0) {
         totalWork = 0.0;
+        pedalCount = 0.0;
     }
 
     ///////////////////////////////////////////////////////////////////////////
