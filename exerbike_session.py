@@ -28,7 +28,7 @@ font = {'family' : 'normal',
 
 import matplotlib
 
-plt.style.use('jay1')
+#plt.style.use('jay1')
 
 
 matplotlib.rc('font', **font)
@@ -61,7 +61,7 @@ ref_pace = pd.DataFrame({
 ref_pace['pedal_cnt'] = 1000.0 / 1200.0
 ref_pace['resist_pct'] = 0.3
 ref_pace['power'] = 130.0
-ref_pace['work'] = ref_pace['t'] * 200.0 / 1200.0
+ref_pace['work'] = 200.0 / 1200.0
 
 def animate(i):
     try:
@@ -127,7 +127,7 @@ def animate(i):
     ax.clear()
     ax.set_title(f"Work: {df.work.sum():.0f} kcal")
     for d, alph, clr in dfs:
-        ax.plot(d.t, d.work, alpha=alph, c=clr)
+        ax.plot(d.t, d.work.cumsum(), alpha=alph, c=clr)
 
     print(f"{t},{pedal_cnt},{resist_pct},{tgt_resist_pct},{power},{work}", file=log_fd)
     log_fd.flush()
