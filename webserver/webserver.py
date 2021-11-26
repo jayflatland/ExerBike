@@ -44,7 +44,7 @@ def handle_exerbike():
     # trim to the latest workout (anything)
     df['dts'] = df['ts'].diff()
 
-    df['workout_gap'] = (df['dts'] > Timedelta('30s')) | df['dts'].isnull()
+    df['workout_gap'] = (df['dts'] > Timedelta('5m')) | df['dts'].isnull()
 
     df['workout_start_secs'] = np.where(df['workout_gap'], (df['ts'] - now).dt.total_seconds(), np.nan)
     df['workout_start_secs'] = df['workout_start_secs'].ffill()
