@@ -30,44 +30,28 @@ def img_from_plt(plt):
 def handle_exerbike():
     import time
 
-    t1 = time.time()
-    def lprint(*args):
-        print(f"{time.time() - t1:.2f} :", *args)
-
     now = Timestamp('now')
 
     nowstr = str(now)
     datestr = nowstr[:10]
 
-    #NOTES - we read the power monitor logs.  channel 4 has sump pump.
     df = pd.read_csv(f"/opt/ExerBike/logs/{datestr}_exerbike.csv")
-    # print(df)
 
-    # lprint("Calculating...")
-    # latest_ts_age_style = "color: white; background-color: red;"
     df.set_index(pd.DatetimeIndex(df['ts']), inplace=True)
     df['ts'] = df.index
-    # df['running'] = df['amps4'] > 1.5;
-    # #df = df.set_index(df.ts)
-    # latest_ts = df.index.max()
-    # lprint("latest_ts=", latest_ts)
 
-    # if len(df) > 1:
-    #     latest_ts_age = (now - latest_ts)
-    #     if latest_ts_age < pd.Timedelta(10.0, unit='s'):
-    #         latest_ts_age_style = "color: black; background-color: #eeeeee;"
-    #     lprint(f"latest_ts={latest_ts} now={now} latest_ts_age={latest_ts_age}")
-    #     latest_ts_age = latest_ts_age.total_seconds()
-    #     df['pump'] = (df.running==1) & (df.running.shift(1)==0)
-    #     df = df[df.pump]
-    #     pump_run_time = pd.Timedelta(10.0, unit='s')
-    #     df['downtime'] = (df.ts - df.ts.shift(1)) - pump_run_time
-    #     df['utilization'] = 100.0 * pump_run_time.total_seconds() / (df['downtime'].dt.total_seconds() + pump_run_time.total_seconds())
-    #     #lprint(df)
-    # else:
-    #     latest_ts_age = 9999.9
-    #     df['utilization'] = 0.0
-    #     df['downtime'] = np.nan
+
+    # trim to the latest workout (anything)
+    df['dts'] = df['ts'].diff()
+
+    df['workout_gap'] = (df['dts'] > Timedelta('30s')) | df['dts'].isnull()
+
+    df['workout_start_secs'] = np.where(df['workout_gap'], (df['ts'] - now).dt.total_seconds(), np.nan)
+    df['workout_start_secs'] = df['workout_start_secs'].ffill()
+
+    df['is_latest_work'] = df['workout_start_secs'] == df['workout_start_secs'].max()
+    df = df[df['is_latest_work']]
+
     calories_graph = ""
     resistance_graph = ""
     if len(df) > 1:
@@ -88,13 +72,6 @@ def handle_exerbike():
         resistance_graph = img_from_plt(plt)
         plt.close()
 
-
-    # if len(df) > 1:
-    #     tbl = df[['downtime', 'utilization']][::-1].reset_index().dropna().head(10).to_html(index=False, classes="downtime")
-    # else:
-    #     tbl = "<h3>NO RECENT DATA</h3>"
-
-    # lprint("Making html...")
     html = f"""
     <html>
     <head>
