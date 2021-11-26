@@ -72,13 +72,14 @@ def handle_exerbike():
     resistance_graph = ""
     if len(df) > 1:
         # lprint("Plotting...")
-        #plt.figure(figsize=(6, 4))
+        plt.figure(figsize=(4, 3))
         plt.title("Total Calories")
         plt.grid()
         plt.plot(df.calories.cumsum())
         calories_graph = img_from_plt(plt)
         plt.close()
 
+        plt.figure(figsize=(4, 3))
         plt.title("Resistance")
         plt.grid()
         plt.plot(df.resistance)
@@ -133,8 +134,7 @@ def handle_exerbike():
     </style>
     </head>
     <body>
-    <div>{calories_graph}</div>
-    <div>{resistance_graph}</div>
+    <span>{calories_graph}{resistance_graph}</span>
     </body>
     </html>
     """
