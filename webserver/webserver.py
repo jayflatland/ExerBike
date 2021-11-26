@@ -72,14 +72,15 @@ def handle_exerbike():
     resistance_graph = ""
     if len(df) > 1:
         # lprint("Plotting...")
-        plt.figure(figsize=(4, 3))
+        sz = (6, 5)
+        plt.figure(figsize=sz)
         plt.title("Total Calories")
         plt.grid()
         plt.plot(df.calories.cumsum())
         calories_graph = img_from_plt(plt)
         plt.close()
 
-        plt.figure(figsize=(4, 3))
+        plt.figure(figsize=sz)
         plt.title("Resistance")
         plt.grid()
         plt.plot(df.resistance)
