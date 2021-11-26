@@ -105,11 +105,10 @@ void handle_pedal_increment() {
                  // String(power) + "," + 
                  String(KCAL(work));
     // String msg = String("pedal,") + String(resistance);
-    Serial.println(msg);
-    msg = msg + "\n";
+    // Serial.println(msg);
+    // msg = msg + "\n";
 
-    Udp.beginPacket("10.1.10.12", 10245); Udp.write((const uint8_t*)msg.c_str(), msg.length()); Udp.endPacket();
-    // Udp.beginPacket("10.1.10.12", 10245); Udp.write((const uint8_t*)msg.c_str(), msg.length()); Udp.endPacket();
+    Udp.beginPacket("10.1.10.11", 10245); Udp.write((const uint8_t*)msg.c_str(), msg.length()); Udp.endPacket();
 }
 
 
