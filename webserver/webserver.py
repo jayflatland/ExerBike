@@ -35,42 +35,46 @@ def handle_exerbike():
     nowstr = str(now)
     datestr = nowstr[:10]
 
-    df = pd.read_csv(f"/opt/ExerBike/logs/{datestr}_exerbike.csv")
-
-    df.set_index(pd.DatetimeIndex(df['ts']), inplace=True)
-    df['ts'] = df.index
-
-
-    # trim to the latest workout (anything)
-    df['dts'] = df['ts'].diff()
-
-    df['workout_gap'] = (df['dts'] > Timedelta('5m')) | df['dts'].isnull()
-
-    df['workout_start_secs'] = np.where(df['workout_gap'], (df['ts'] - now).dt.total_seconds(), np.nan)
-    df['workout_start_secs'] = df['workout_start_secs'].ffill()
-
-    df['is_latest_work'] = df['workout_start_secs'] == df['workout_start_secs'].max()
-    df = df[df['is_latest_work']]
-
-    calories_graph = ""
+    calories_graph = "No workouts logged yet today!!"
     resistance_graph = ""
-    if len(df) > 1:
-        # lprint("Plotting...")
-        sz = (6, 5)
-        plt.figure(figsize=sz)
-        plt.title("Total Calories")
-        plt.grid()
-        plt.plot(df.calories.cumsum())
-        calories_graph = img_from_plt(plt)
-        plt.close()
+    
+    try:
+        df = pd.read_csv(f"/opt/ExerBike/logs/{datestr}_exerbike.csv")
 
-        plt.figure(figsize=sz)
-        plt.title("Resistance")
-        plt.grid()
-        plt.plot(df.resistance)
-        plt.plot(df.targetResist)
-        resistance_graph = img_from_plt(plt)
-        plt.close()
+        df.set_index(pd.DatetimeIndex(df['ts']), inplace=True)
+        df['ts'] = df.index
+
+
+        # trim to the latest workout (anything)
+        df['dts'] = df['ts'].diff()
+
+        df['workout_gap'] = (df['dts'] > Timedelta('5m')) | df['dts'].isnull()
+
+        df['workout_start_secs'] = np.where(df['workout_gap'], (df['ts'] - now).dt.total_seconds(), np.nan)
+        df['workout_start_secs'] = df['workout_start_secs'].ffill()
+
+        df['is_latest_work'] = df['workout_start_secs'] == df['workout_start_secs'].max()
+        df = df[df['is_latest_work']]
+
+        if len(df) > 1:
+            # lprint("Plotting...")
+            sz = (6, 5)
+            plt.figure(figsize=sz)
+            plt.title("Total Calories")
+            plt.grid()
+            plt.plot(df.calories.cumsum())
+            calories_graph = img_from_plt(plt)
+            plt.close()
+
+            plt.figure(figsize=sz)
+            plt.title("Resistance")
+            plt.grid()
+            plt.plot(df.resistance)
+            plt.plot(df.targetResist)
+            resistance_graph = img_from_plt(plt)
+            plt.close()
+    except:
+        pass
 
     html = f"""
     <html>
