@@ -37,6 +37,7 @@ def handle_exerbike():
 
     calories_graph = "No workouts logged yet today!!"
     resistance_graph = ""
+    power_graph = ""
     
     try:
         df = pd.read_csv(f"/opt/ExerBike/logs/{datestr}_exerbike.csv")
@@ -52,6 +53,11 @@ def handle_exerbike():
 
         df['workout_start_secs'] = np.where(df['workout_gap'], (df['ts'] - now).dt.total_seconds(), np.nan)
         df['workout_start_secs'] = df['workout_start_secs'].ffill()
+
+        kcal_to_joules = 4184.0
+        human_mechanical_efficiency = 0.25
+        df['joules'] = df['calories'] * kcal_to_joules * human_mechanical_efficiency
+        df['watts'] = df['joules'] / df['dts'].dt.total_seconds()
 
         df['is_latest_work'] = df['workout_start_secs'] == df['workout_start_secs'].max()
         df = df[df['is_latest_work']]
@@ -73,6 +79,14 @@ def handle_exerbike():
             plt.plot(df.targetResist)
             resistance_graph = img_from_plt(plt)
             plt.close()
+
+            plt.figure(figsize=sz)
+            plt.title("Watts")
+            plt.grid()
+            plt.plot(df.watts)
+            power_graph = img_from_plt(plt)
+            plt.close()
+
     except:
         pass
 
@@ -116,7 +130,7 @@ def handle_exerbike():
     </style>
     </head>
     <body>
-    <span>{calories_graph}{resistance_graph}</span>
+    <span>{calories_graph}{power_graph}{resistance_graph}</span>
     </body>
     </html>
     """
