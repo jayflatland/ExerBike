@@ -1,10 +1,16 @@
 #include <WiFi.h>
 #include <WiFiUdp.h>
+#include <AsyncTCP.h>
+#include <ESPAsyncWebSrv.h>
+
+#include "exerbike_websocket.hpp"
 
 const char * networkName = "To The Oasis";
 const char * networkPswd = "deadbeef";
 
-WiFiUDP Udp;
+AsyncWebServer webserver(80);
+exerbike::exerbike_websocket_type exerbike_websocket(webserver);
+// WiFiUDP Udp;
 
 long scheduledNextTick;
 
@@ -74,6 +80,14 @@ void setup()
     // pinMode(resetPin, INPUT);
     Serial.begin(115200);
     connectToWiFi(networkName, networkPswd);
+
+    exerbike_websocket.setup();
+
+    webserver.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
+                 { request->send_P(200, "text/html", "HI!!", nullptr); });
+
+    // Start webserver
+    webserver.begin();
 }
 
 // float heart = 0.0;
@@ -108,12 +122,15 @@ void handle_pedal_increment() {
     // Serial.println(msg);
     // msg = msg + "\n";
 
-    Udp.beginPacket("10.1.10.11", 10245); Udp.write((const uint8_t*)msg.c_str(), msg.length()); Udp.endPacket();
+    // Udp.beginPacket("10.1.10.11", 10245); Udp.write((const uint8_t*)msg.c_str(), msg.length()); Udp.endPacket();
+    exerbike_websocket.broadcast(resistance, targetResist, KCAL(work));
 }
 
 
 void loop()
 {
+    exerbike_websocket.loop();
+
     now = (long)millis();
     if( scheduledNextTick - now > 0 ) {
         return;
@@ -181,6 +198,7 @@ void loop()
         //  + String(resistance));
         digitalWrite(motor1Pin, HIGH);
         digitalWrite(motor2Pin, LOW);
+        // exerbike_websocket.broadcast(resistance, targetResist, 0.0);
         resistoDir = 1;
     }
     else if(resistance > targetResist + targetResistTol){
@@ -190,6 +208,7 @@ void loop()
         //  + String(resistance));
         digitalWrite(motor1Pin, LOW);
         digitalWrite(motor2Pin, HIGH);
+        // exerbike_websocket.broadcast(resistance, targetResist, 0.0);
         resistoDir = -1;
     }
     else {
