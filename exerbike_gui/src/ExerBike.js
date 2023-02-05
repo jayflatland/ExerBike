@@ -22,16 +22,26 @@ export default function ExerBike(props) {
     useEffect(() => {
         if (lastMessage !== null) {
             var d = JSON.parse(lastMessage.data);
+            if (Object.keys(d).length === 0) {
+                return;
+            }
             console.log(d);
 
-            var now = Date.now();
-            setState((prevState) => { return {
-                "times": prevState.times.concat(now),
-                "kcals": prevState.kcals.concat(d.work_kcal),
-                "totalKCals": prevState.kcals.concat(prevState.totalKCal + d.work_kcal),
-                "totalKCal": prevState.totalKCal + d.work_kcal,
-                "startTime": prevState.startTime === undefined ? now : prevState.startTime
-            }; });
+            setState((prevState) => {
+                // console.log(prevState);
+                try {
+                    return {
+                        "times": prevState.times.concat(d.t),
+                        "kcals": prevState.kcals.concat(d.work_kcal),
+                        "totalKCals": prevState.kcals.concat(prevState.totalKCal + d.work_kcal),
+                        "totalKCal": prevState.totalKCal + d.work_kcal,
+                        "startTime": prevState.startTime === undefined ? d.t : prevState.startTime
+                    };
+                }
+                catch {
+                    return prevState;
+                }
+            });
         }
 
         const canvas = canvasRef.current
@@ -39,7 +49,7 @@ export default function ExerBike(props) {
         //Our first draw
         context.fillStyle = '#0000ff';
         context.fillRect(0, 0, context.canvas.width, context.canvas.height);
-  
+
     }, [lastMessage]);
 
     const connectionStatus = {
@@ -50,6 +60,7 @@ export default function ExerBike(props) {
         [ReadyState.UNINSTANTIATED]: 'Uninstantiated',
     }[readyState];
 
+    // console.log(state);
     return (
         <div>
             <span>The WebSocket is currently {connectionStatus}</span>
@@ -61,7 +72,7 @@ export default function ExerBike(props) {
                     ['kcal', ...state.kcals]
                 ],
             }} />
-            <canvas ref={canvasRef} {...props}/>
+            <canvas ref={canvasRef} {...props} />
         </div>
     );
 };
