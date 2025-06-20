@@ -10,7 +10,7 @@ const char * networkPswd = "deadbeef";
 
 AsyncWebServer webserver(80);
 exerbike::exerbike_websocket_type exerbike_websocket(webserver);
-// WiFiUDP Udp;
+WiFiUDP Udp;
 
 long scheduledNextTick;
 
@@ -113,17 +113,20 @@ void handle_pedal_increment() {
 
     // lastReportMillis = now;
 
-    String msg = String("exerbike pedal,") +
-                 String(resistance) + "," +
-                 String(targetResist) + "," + 
-                 // String(power) + "," + 
-                 String(KCAL(work));
+    // String msg = //String("exerbike pedal,") +
+    //              String(resistance) + "," +
+    //              String(targetResist) + "," + 
+    //              // String(power) + "," + 
+    //              String(KCAL(work));
     // String msg = String("pedal,") + String(resistance);
     // Serial.println(msg);
     // msg = msg + "\n";
-
-    // Udp.beginPacket("10.1.10.11", 10245); Udp.write((const uint8_t*)msg.c_str(), msg.length()); Udp.endPacket();
-    exerbike_websocket.broadcast(resistance, targetResist, KCAL(work));
+    String msg = "{\"t\":" + String(millis()) + ", \"work_kcal\":" + String(KCAL(work)) + "}";
+    Udp.beginPacket("10.1.10.255", 10245);
+    // Udp.beginPacket("10.1.10.13", 10245);
+    Udp.write((const uint8_t*)msg.c_str(), msg.length());
+    Udp.endPacket();
+    // exerbike_websocket.broadcast(resistance, targetResist, KCAL(work));
 }
 
 
@@ -191,6 +194,8 @@ void loop()
     ///////////////////////////////////////////////////////////////////////////
     targetResist = resistKnob;
     int resistoDir = 999;
+
+    // Serial.println(String(resistKnob) + ", " + String(targetResist) + ", " + String(resistance));
     if(resistance < targetResist - targetResistTol) {
         // Serial.println("Harder... "
         //  + String(resistKnob) + ", "
