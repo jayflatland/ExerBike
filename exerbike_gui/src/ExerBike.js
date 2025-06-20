@@ -4,7 +4,7 @@ import C3Chart from 'react-c3js';
 import 'c3/c3.css';
 
 export default function ExerBike(props) {
-    const [socketUrl] = useState('ws://10.1.10.177/exerbike');
+    const [socketUrl] = useState('ws://127.0.0.1:8080');
     const [state, setState] = useState({
         "times": [],
         "kcals": [],
