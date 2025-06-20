@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Turtle Pedal Game</title>
+    <style>
+        canvas {
+            border: 1px solid #ccc;
+            background: #eef;
+        }
+
+        body {
+            font-family: sans-serif;
+            text-align: center;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>🚴 Turtle Pedal Game 🐢</h2>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        const WIDTH = canvas.width;
+        const HEIGHT = canvas.height;
+        const MAX_SPEED = 5;
+        const TURN_SPEED = 0.05;
+
+        const turtle = {
+            x: WIDTH / 2,
+            y: HEIGHT / 2,
+            angle: 0,
+            speed: 0
+        };
+
+        const ghosts = Array.from({ length: 3 }, () => ({
+            x: Math.random() * WIDTH,
+            y: Math.random() * HEIGHT,
+            speed: 1 + Math.random() * 0.5
+        }));
+
+        let velocity = 0;
+        let kcalImpulse = 0;
+
+        // WebSocket setup
+        const ws = new WebSocket("ws://localhost:8080");
+
+        ws.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                if (typeof data.work_kcal === "number") {
+                    const impulse = data.work_kcal * 5; // Adjust multiplier as needed
+                    kcalImpulse += impulse;
+                }
+            } catch (e) {
+                console.warn("Invalid WebSocket message", e);
+            }
+        };
+
+        // Gamepad helper
+        function getTurnInput() {
+            const gp = navigator.getGamepads?.()[0];
+            if (!gp) return 0;
+
+            let axis = gp.axes?.[0] || 0;
+            const leftPressed = gp.buttons?.[14]?.pressed;
+            const rightPressed = gp.buttons?.[15]?.pressed;
+
+            if (leftPressed) return -1;
+            if (rightPressed) return 1;
+            return Math.abs(axis) > 0.1 ? axis : 0;
+        }
+
+        function updateGhosts() {
+            for (const ghost of ghosts) {
+                const dx = turtle.x - ghost.x;
+                const dy = turtle.y - ghost.y;
+                const distance = Math.hypot(dx, dy);
+                if (distance > 0) {
+                    ghost.x += (dx / distance) * ghost.speed;
+                    ghost.y += (dy / distance) * ghost.speed;
+                }
+            }
+        }
+
+        function drawGhosts() {
+            for (const ghost of ghosts) {
+                ctx.save();
+                ctx.translate(ghost.x, ghost.y);
+                ctx.fillStyle = "rgba(200, 0, 200, 0.7)";
+                ctx.beginPath();
+                ctx.arc(0, 0, 15, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        // Main game loop
+        function gameLoop() {
+            // Movement physics
+            const accel = kcalImpulse;
+            kcalImpulse = 0;
+            velocity += accel;
+            velocity *= 0.98; // Friction
+            const speed = Math.min(MAX_SPEED, velocity);
+
+            const turn = getTurnInput();
+            turtle.angle += turn * TURN_SPEED;
+
+            turtle.x = (turtle.x + Math.sin(turtle.angle) * speed);// + WIDTH);// % WIDTH;
+            turtle.y = (turtle.y - Math.cos(turtle.angle) * speed);// + HEIGHT);// % HEIGHT;
+
+            if (turtle.x < 0) { turtle.x = 0; }
+            if (turtle.y < 0) { turtle.y = 0; }
+            if (turtle.x > WIDTH) { turtle.x = WIDTH; }
+            if (turtle.y > HEIGHT) { turtle.y = HEIGHT; }
+
+            updateGhosts();
+
+            // Drawing
+            ctx.clearRect(0, 0, WIDTH, HEIGHT);
+
+            // Draw ghosts
+            drawGhosts();
+
+            // Draw turtle
+            ctx.save();
+            ctx.translate(turtle.x, turtle.y);
+            ctx.rotate(turtle.angle);
+
+            ctx.fillStyle = "green";
+            ctx.beginPath();
+            ctx.arc(0, 0, 20, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = "orange";
+            ctx.beginPath();
+            ctx.moveTo(0, -20);
+            ctx.lineTo(10, -10);
+            ctx.lineTo(-10, -10);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.restore();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+
+</html>
