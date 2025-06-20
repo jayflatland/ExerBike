@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+
+<body>
+    <h2>Joystick Tester</h2>
+    <pre id="output">Connect a gamepad and press any button...</pre>
+
+    <script>
+        let gamepadIndex = null;
+
+        window.addEventListener("gamepadconnected", (event) => {
+            gamepadIndex = event.gamepad.index;
+            console.log("Gamepad connected:", event.gamepad);
+        });
+
+        window.addEventListener("gamepaddisconnected", () => {
+            gamepadIndex = null;
+            console.log("Gamepad disconnected.");
+        });
+
+        function pollGamepad() {
+            const output = document.getElementById("output");
+
+            if (gamepadIndex !== null) {
+                const gamepad = navigator.getGamepads()[gamepadIndex];
+                if (gamepad) {
+                    const axes = gamepad.axes.map(a => a.toFixed(2));
+                    const buttons = gamepad.buttons.map(b => b.pressed ? '1' : '0');
+                    output.textContent = `Axes: ${axes.join(', ')}\nButtons: ${buttons.join(' ')}`;
+                }
+            }
+
+            requestAnimationFrame(pollGamepad);
+        }
+
+        pollGamepad();
+    </script>
+</body>
+
+</html>
